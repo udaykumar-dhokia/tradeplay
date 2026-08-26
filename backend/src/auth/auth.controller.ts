@@ -149,7 +149,8 @@ class AuthController {
       res.cookie("token", token, cookieOptions);
 
       return res.status(StatusCodes.OK).json({ message: ReasonPhrases.OK });
-    } catch {
+    } catch (e) {
+      console.log(e);
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
         .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });

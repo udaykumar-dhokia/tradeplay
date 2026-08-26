@@ -19,6 +19,14 @@ class AuthService {
       },
     });
   };
+
+  findUserById = async (id: string) => {
+    return prisma.user.findFirst({
+      where: {
+        id: id,
+      },
+    });
+  };
 }
 
 export default AuthService;
