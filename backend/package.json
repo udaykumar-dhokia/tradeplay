@@ -3,9 +3,16 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "nodemon --watch src --ext ts --exec \"bun run src/index.ts\"",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/pg": "^8.23.1",
+    "@types/swagger-ui-express": "^4.1.8",
+    "nodemon": "^3.1.14",
     "prisma": "6.19"
   },
   "peerDependencies": {
@@ -29,6 +36,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.4",
     "pg": "^8.23.0",
+    "swagger-ui-express": "^5.0.1",
     "tsx": "^4.23.12",
     "yahoo-finance2": "^4.0.2"
   }
