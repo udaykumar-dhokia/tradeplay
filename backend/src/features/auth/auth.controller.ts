@@ -5,6 +5,7 @@ import AuthService from "./auth.service";
 import Hash from "../../utils/hash.util";
 import Jwt from "../../utils/jwt.util";
 import cookieOptions from "../../utils/cookie.util";
+import PortfolioService from "../portfolio/portfolio.service";
 
 /**
  * AuthController
@@ -15,11 +16,13 @@ class AuthController {
   private authService: AuthService;
   private hash: Hash;
   private jwt: Jwt;
+  private portfolio: PortfolioService;
 
   constructor() {
     this.authService = new AuthService();
     this.hash = new Hash();
     this.jwt = new Jwt();
+    this.portfolio = new PortfolioService();
   }
 
   /**
@@ -74,6 +77,13 @@ class AuthController {
       };
       const newUser = await this.authService.createUser(userPayload);
       if (!newUser) {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+      }
+
+      const portfolio = await this.portfolio.initialize(newUser.id);
+      if (!portfolio) {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
           .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
@@ -149,8 +159,7 @@ class AuthController {
       res.cookie("token", token, cookieOptions);
 
       return res.status(StatusCodes.OK).json({ message: ReasonPhrases.OK });
-    } catch (e) {
-      console.log(e);
+    } catch {
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
         .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });

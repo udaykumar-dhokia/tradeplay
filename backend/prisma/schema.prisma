@@ -8,6 +8,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TransactionType {
+  BUY
+  SELL
+}
+
+enum PositionStatus {
+  OPEN
+  CLOSED
+}
+
 model User {
   id         String  @id @default(uuid())
   first_name String
@@ -17,7 +27,72 @@ model User {
   email    String
   password String
 
-  is_email_verified Boolean @default(false)
+  is_email_verified Boolean     @default(false)
+  portfolios        Portfolio[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@index([email])
+}
+
+model Portfolio {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  original_balance Decimal        @default(100000) @db.Decimal(20, 4)
+  current_balance  Decimal        @default(100000) @db.Decimal(20, 4)
+  transactions     Transactions[]
+
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+  positions  Position[]
+
+  @@index([userId])
+}
+
+model Transactions {
+  id   String          @id @default(uuid())
+  type TransactionType
+
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+  portfolioId String
+
+  symbol   String
+  name     String
+  exchange String
+
+  total_shares Int
+  price        Decimal @db.Decimal(20, 4)
+  total_amount Decimal @db.Decimal(20, 4)
+  realized_pnl Decimal? @db.Decimal(20, 4)
+
+  created_at DateTime @default(now())
+
+  @@index([portfolioId])
+  @@index([symbol])
+  @@index([created_at])
+}
+
+model Position {
+  id String @id @default(uuid())
+
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+  portfolioId String
+
+  symbol   String
+  name     String
+  exchange String
+
+  quantity      Int            @default(0)
+  average_price Decimal        @db.Decimal(20, 4)
+  status        PositionStatus @default(OPEN)
+
+  opened_at DateTime  @default(now())
+  closed_at DateTime?
+
+  @@unique([portfolioId, symbol])
+  @@index([portfolioId])
+  @@index([status])
 }
