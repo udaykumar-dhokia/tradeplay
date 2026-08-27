@@ -2,9 +2,9 @@ import type { Request, Response } from "express";
 import type { TCreateUser } from "./dto/createUser.dto";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import AuthService from "./auth.service";
-import Hash from "../utils/hash.util";
-import Jwt from "../utils/jwt.util";
-import cookieOptions from "../utils/cookie.util";
+import Hash from "../../utils/hash.util";
+import Jwt from "../../utils/jwt.util";
+import cookieOptions from "../../utils/cookie.util";
 
 /**
  * AuthController

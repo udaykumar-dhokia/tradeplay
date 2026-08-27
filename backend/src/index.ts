@@ -5,8 +5,9 @@ import http from "http";
 import cookieParser from "cookie-parser";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 
-import AuthRoutes from "./auth/auth.route";
-import UserRoutes from "./user/user.route";
+import AuthRoutes from "./features/auth/auth.route";
+import UserRoutes from "./features/user/user.route";
+import StocksRoute from "./features/stocks/stocks.route";
 
 const PORT = process.env.PORT || 3000;
 
@@ -23,6 +24,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/user", UserRoutes);
+app.use("/api/v1/stocks", StocksRoute);
 
 server.listen(PORT, () => {
   console.log(`Server is up and running at ${PORT}`);

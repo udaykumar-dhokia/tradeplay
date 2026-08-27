@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import Jwt, { type IJwtPayload } from "../utils/jwt.util";
-import AuthService from "../auth/auth.service";
+import AuthService from "../features/auth/auth.service";
 
 const jwt = new Jwt();
 const authService = new AuthService();

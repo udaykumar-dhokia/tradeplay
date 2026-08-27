@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma";
+import { prisma } from "../../lib/prisma";
 import type { TCreateUser } from "./dto/createUser.dto";
 
 class AuthService {

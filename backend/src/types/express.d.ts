@@ -1,4 +1,4 @@
-import type { TUser } from "../user/dto/user.dto";
+import type { TUser } from "../features/user/dto/user.dto";
 
 declare global {
   namespace Express {
