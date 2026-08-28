@@ -97,4 +97,22 @@ router.get("/search", stocksController.search);
  */
 router.get("/history", stocksController.history);
 
+/**
+ * @swagger
+ * /api/v1/stocks/quotes:
+ *   get:
+ *     summary: Get live quotes for predefined stocks
+ *     tags: [Stocks]
+ *     parameters:
+ *       - in: query
+ *         name: symbols
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of symbols (e.g. RELIANCE.NS,TCS.NS)
+ *     responses:
+ *       200:
+ *         description: Live quotes data
+ */
+router.get("/quotes", stocksController.quotes);
+
 export default router;

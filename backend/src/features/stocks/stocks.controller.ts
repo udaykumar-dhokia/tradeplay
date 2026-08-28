@@ -150,6 +150,45 @@ class StocksController {
         .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
     }
   };
+
+  /**
+   * Retrieves quotes for multiple Indian stocks.
+   *
+   * @param {Request} req - Express request containing comma-separated symbols
+   * @param {Response} res - Express response object
+   */
+  quotes = async (req: Request, res: Response) => {
+    try {
+      const symbolsQuery = String(
+        req.query.symbols ||
+          "RELIANCE.NS,TCS.NS,INFY.NS,HDFCBANK.NS,ICICIBANK.NS",
+      );
+      const symbols = symbolsQuery
+        .split(",")
+        .map((s) => s.trim().toUpperCase())
+        .filter((s) => s.endsWith(".NS") || s.endsWith(".BO"));
+
+      if (symbols.length === 0) {
+        return res.json([]);
+      }
+
+      const results = await this.yahooFinance.quote(symbols);
+      const quotes = results.map((q: any) => ({
+        symbol: q.symbol,
+        name: q.shortName || q.longName || q.symbol,
+        price: q.regularMarketPrice,
+        change: q.regularMarketChange,
+        changePercent: q.regularMarketChangePercent,
+      }));
+
+      return res.json(quotes);
+    } catch (error) {
+      console.error("Stock quotes failed:", error);
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+    }
+  };
 }
 
 export default new StocksController();
