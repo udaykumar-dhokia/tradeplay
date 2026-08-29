@@ -24,9 +24,11 @@ import {
   useLogoutMutation,
 } from "@/lib/features/auth/authApi";
 import { logout as clearUser } from "@/lib/features/auth/authSlice";
-import { useAppDispatch } from "@/lib/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "@/components/ui/toast";
+import { Switch } from "@/components/ui/switch";
+import { toggleAdvancedMode } from "@/lib/features/ui/uiSlice";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   UserCircleIcon,
@@ -38,11 +40,13 @@ import {
   ChartBarLineIcon,
   WorkHistoryIcon,
   HeartIcon,
+  SaveMoneyDollarIcon,
 } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home01Icon },
+  { title: "Portfolio", url: "/portfolio", icon: SaveMoneyDollarIcon },
   { title: "Explore", url: "/explore", icon: CompassIcon },
   { title: "History", url: "/history", icon: WorkHistoryIcon },
   { title: "Wishlist", url: "/wishlist", icon: HeartIcon },
@@ -52,6 +56,7 @@ export function AppSidebar() {
   const { data: user, isLoading } = useGetCurrentUserQuery({});
   const [logout] = useLogoutMutation();
   const dispatch = useAppDispatch();
+  const advancedMode = useAppSelector((state) => state.ui.advancedMode);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -78,6 +83,17 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+
+      <div className="px-4 py-3 border-t flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold">Advanced Mode</span>
+          <span className="text-xs text-muted-foreground">Pro charting tools</span>
+        </div>
+        <Switch
+          checked={advancedMode}
+          onCheckedChange={() => dispatch(toggleAdvancedMode())}
+        />
+      </div>
 
       <SidebarFooter className="border-t p-4">
         {isLoading ? (

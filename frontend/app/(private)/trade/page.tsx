@@ -22,6 +22,8 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import { Sparkline } from "@/components/custom/sparkline";
+import { useAppSelector } from "@/lib/hooks";
+import { AdvancedChartView } from "@/components/custom/advanced-chart";
 
 const TIMEFRAMES = [
   { label: "1D", range: "1d", interval: "5m" },
@@ -37,6 +39,7 @@ const TIMEFRAMES = [
 export default function TradePage() {
   const searchParams = useSearchParams();
   const symbol = searchParams.get("symbol");
+  const advancedMode = useAppSelector((state) => state.ui.advancedMode);
 
   const [activeTimeframe, setActiveTimeframe] = useState(TIMEFRAMES[5]); // Default 1Y
 
@@ -118,6 +121,18 @@ export default function TradePage() {
       <div className="flex h-[50vh] items-center justify-center text-muted-foreground">
         Please search and select a stock to view details.
       </div>
+    );
+  }
+
+  if (advancedMode) {
+    return (
+      <AdvancedChartView
+        symbol={symbol}
+        name={priceData?.shortName || symbol}
+        price={priceData?.regularMarketPrice}
+        change={priceData?.regularMarketChange}
+        changePercent={(priceData?.regularMarketChangePercent || 0) * 100}
+      />
     );
   }
 
@@ -386,7 +401,7 @@ export default function TradePage() {
                       color={stock.change >= 0 ? "#22c55e" : "#ef4444"}
                     />
                   </div>
-                  <div className="flex flex-col items-end shrink-0 min-w-[70px]">
+                  <div className="flex flex-col items-end shrink-0 min-w-17.5">
                     <span className="font-medium text-sm">
                       ₹{stock.price.toFixed(2)}
                     </span>
