@@ -7,9 +7,47 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import Link from "next/link";
+import { useRegisterMutation } from "@/lib/features/auth/authApi";
+import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/toast";
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [register, { isLoading }] = useRegisterMutation();
+  const router = useRouter();
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await register({
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        mobile,
+        password,
+      }).unwrap();
+
+      toast.add({
+        title: "Success",
+        description: "Account created successfully",
+        type: "success",
+      });
+
+      router.push("/");
+    } catch (err: any) {
+      toast.add({
+        title: "Error",
+        description: err.data?.message || "Registration failed",
+        type: "error",
+      });
+    }
+  };
 
   return (
     <div>
@@ -28,15 +66,26 @@ const Register = () => {
               Create Account
             </h2>
 
-            <div className="space-y-4">
+            <form onSubmit={handleRegister} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="first_name">First Name *</Label>
-                  <Input id="first_name" placeholder="John" required />
+                  <Input
+                    id="first_name"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="last_name">Last Name</Label>
-                  <Input id="last_name" placeholder="Doe" />
+                  <Input
+                    id="last_name"
+                    placeholder="Doe"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
                 </div>
               </div>
 
@@ -46,13 +95,23 @@ const Register = () => {
                   id="email"
                   type="email"
                   placeholder="john@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="mobile">Mobile Number</Label>
-                <Input id="mobile" type="tel" placeholder="+91 9876543210" />
+                <Input
+                  id="mobile"
+                  type="tel"
+                  placeholder="9876543210"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                />
               </div>
 
               <div className="space-y-2">
@@ -61,6 +120,8 @@ const Register = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                     className="pr-10"
                   />
@@ -77,8 +138,13 @@ const Register = () => {
                 </div>
               </div>
 
-              <Button className="w-full mt-2" size="lg">
-                Get Started
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full mt-2"
+                size="lg"
+              >
+                {isLoading ? "Creating Account..." : "Get Started"}
               </Button>
 
               <div className="mt-4 text-center text-sm text-gray-600">
@@ -90,7 +156,7 @@ const Register = () => {
                   Login here
                 </Link>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </section>

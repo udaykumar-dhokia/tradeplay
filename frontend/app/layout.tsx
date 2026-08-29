@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -17,10 +18,17 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TradePlay | Learn Paper Trading & Contests",
-  description: "Master the stock market with our risk-free learning platform. Join paper trading contests, predict stock movements, and climb the leaderboard. No real money required.",
+  description:
+    "Master the stock market with our risk-free learning platform. Join paper trading contests, predict stock movements, and climb the leaderboard. No real money required.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+import StoreProvider from "./StoreProvider";
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="en"
@@ -33,7 +41,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         inter.variable,
       )}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <StoreProvider>{children}</StoreProvider>
+        <Toaster />
+      </body>
     </html>
   );
 }

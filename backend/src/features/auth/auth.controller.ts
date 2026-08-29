@@ -50,7 +50,13 @@ class AuthController {
     if (!email || !first_name || !password) {
       return res
         .status(StatusCodes.BAD_REQUEST)
-        .json({ message: ReasonPhrases.BAD_GATEWAY });
+        .json({ message: "Email, first name, and password are required" });
+    }
+
+    if (mobile && !/^\d{10}$/.test(mobile)) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ message: "Mobile number must be exactly 10 digits" });
     }
 
     try {
@@ -58,14 +64,14 @@ class AuthController {
       if (userExists) {
         return res
           .status(StatusCodes.CONFLICT)
-          .json({ message: ReasonPhrases.CONFLICT });
+          .json({ message: "User with this email already exists" });
       }
 
       const hashedPassword = await this.hash.encode(password);
       if (!hashedPassword) {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+          .json({ message: "Failed to process password" });
       }
 
       const userPayload: TCreateUser = {
@@ -79,32 +85,32 @@ class AuthController {
       if (!newUser) {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+          .json({ message: "Failed to create user account" });
       }
 
       const portfolio = await this.portfolio.initialize(newUser.id);
       if (!portfolio) {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+          .json({ message: "Failed to initialize portfolio" });
       }
 
       const token = await this.jwt.sign(newUser.id);
       if (!token) {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+          .json({ message: "Failed to generate authentication token" });
       }
 
       res.cookie("token", token, cookieOptions);
 
       return res
         .status(StatusCodes.CREATED)
-        .json({ message: ReasonPhrases.CREATED });
+        .json({ message: "Account created successfully" });
     } catch {
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+        .json({ message: "An unexpected error occurred during registration" });
     }
   };
 
@@ -132,7 +138,7 @@ class AuthController {
     if (!email || !password) {
       return res
         .status(StatusCodes.BAD_REQUEST)
-        .json({ message: ReasonPhrases.BAD_GATEWAY });
+        .json({ message: "Email and password are required" });
     }
 
     try {
@@ -140,29 +146,29 @@ class AuthController {
       if (!userExists) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .json({ message: ReasonPhrases.BAD_REQUEST });
+          .json({ message: "Invalid email or password" });
       }
 
       if (!(await this.hash.compare(password, userExists.password))) {
         return res
           .status(StatusCodes.BAD_REQUEST)
-          .json({ message: ReasonPhrases.BAD_REQUEST });
+          .json({ message: "Invalid email or password" });
       }
 
       const token = await this.jwt.sign(userExists.id);
       if (!token) {
         return res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
-          .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+          .json({ message: "Failed to generate authentication token" });
       }
 
       res.cookie("token", token, cookieOptions);
 
-      return res.status(StatusCodes.OK).json({ message: ReasonPhrases.OK });
+      return res.status(StatusCodes.OK).json({ message: "Login successful" });
     } catch {
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+        .json({ message: "An unexpected error occurred during login" });
     }
   };
 }

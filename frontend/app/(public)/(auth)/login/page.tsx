@@ -7,9 +7,38 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import Link from "next/link";
+import { useLoginMutation } from "@/lib/features/auth/authApi";
+import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/toast";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [login, { isLoading }] = useLoginMutation();
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await login({ email, password }).unwrap();
+
+      toast.add({
+        title: "Success",
+        description: "Login successful",
+        type: "success",
+      });
+
+      router.push("/");
+    } catch (err: any) {
+      toast.add({
+        title: "Error",
+        description: err.data?.message || "Login failed",
+        type: "error",
+      });
+    }
+  };
 
   return (
     <div>
@@ -28,13 +57,15 @@ const Login = () => {
               Welcome Back
             </h2>
 
-            <div className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address *</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="john@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -42,10 +73,12 @@ const Login = () => {
               <div className="space-y-2">
                 <Label htmlFor="password">Password *</Label>
                 <div className="relative">
-                  <Input 
-                    id="password" 
-                    type={showPassword ? "text" : "password"} 
-                    required 
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
                     className="pr-10"
                   />
                   <button
@@ -53,22 +86,33 @@ const Login = () => {
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    <HugeiconsIcon icon={showPassword ? ViewOffSlashIcon : ViewIcon} size={18} />
+                    <HugeiconsIcon
+                      icon={showPassword ? ViewOffSlashIcon : ViewIcon}
+                      size={18}
+                    />
                   </button>
                 </div>
               </div>
 
-              <Button className="w-full mt-2" size="lg">
-                Login
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full mt-2"
+                size="lg"
+              >
+                {isLoading ? "Logging in..." : "Login"}
               </Button>
-              
+
               <div className="mt-4 text-center text-sm text-gray-600">
                 Don't have an account?{" "}
-                <Link href="/register" className="font-semibold text-primary hover:underline">
+                <Link
+                  href="/register"
+                  className="font-semibold text-primary hover:underline"
+                >
                   Register here
                 </Link>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </section>
