@@ -44,7 +44,6 @@ import Link from "next/link";
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home01Icon },
   { title: "Explore", url: "/explore", icon: CompassIcon },
-  { title: "Trade", url: "/trade", icon: ChartBarLineIcon },
   { title: "History", url: "/history", icon: WorkHistoryIcon },
   { title: "Wishlist", url: "/wishlist", icon: HeartIcon },
 ];
@@ -58,7 +57,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="h-14 flex items-center justify-center border-b px-4 lg:h-[60px]">
+      <SidebarHeader className="h-14 flex items-center justify-center border-b px-4 lg:h-15">
         <h1 className="text-xl font-bold w-full text-left">Tradeplay</h1>
       </SidebarHeader>
 
@@ -67,7 +66,7 @@ export function AppSidebar() {
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton 
+                <SidebarMenuButton
                   isActive={pathname === item.url}
                   render={<Link href={item.url} />}
                 >

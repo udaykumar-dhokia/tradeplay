@@ -126,5 +126,39 @@ router.get("/quotes", stocksController.quotes);
  *         description: Top 5 gainers and losers
  */
 router.get("/movers", stocksController.movers);
+/**
+ * @swagger
+ * /api/v1/stocks/{symbol}/details:
+ *   get:
+ *     summary: Get detailed stock info (fundamentals, profile)
+ *     tags: [Stocks]
+ *     parameters:
+ *       - in: path
+ *         name: symbol
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Deep stock data
+ */
+router.get("/:symbol/details", stocksController.details);
+/**
+ * @swagger
+ * /api/v1/stocks/{symbol}/similar:
+ *   get:
+ *     summary: Get similar recommended stocks
+ *     tags: [Stocks]
+ *     parameters:
+ *       - in: path
+ *         name: symbol
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Similar stocks
+ */
+router.get("/:symbol/similar", stocksController.similar);
 
 export default router;

@@ -131,10 +131,10 @@ export const StockSearch = ({ className }: { className?: string }) => {
                       />
                       <div className="flex flex-col min-w-0">
                         <span className="font-semibold text-sm truncate">
-                          {stock.symbol}
+                          {stock.symbol.replace(".NS", "").replace(".BO", "")}
                         </span>
-                        <span className="text-xs text-muted-foreground truncate">
-                          {stock.name}
+                        <span className="text-xs text-muted-foreground truncate capitalize">
+                          {stock.name.toLowerCase()}
                         </span>
                       </div>
                     </div>

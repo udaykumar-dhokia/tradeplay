@@ -20,6 +20,26 @@ export interface MoversResponse {
   losers: StockMover[];
 }
 
+export interface StockHistoryRequest {
+  symbol: string;
+  range: string;
+  interval: string;
+}
+
+export interface StockCandle {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface StockHistoryResponse {
+  symbol: string;
+  candles: StockCandle[];
+}
+
 export const stocksApi = createApi({
   reducerPath: "stocksApi",
   baseQuery: fetchBaseQuery({
@@ -32,8 +52,24 @@ export const stocksApi = createApi({
     getTopMovers: builder.query<MoversResponse, void>({
       query: () => `stocks/movers`,
     }),
+    getStockHistory: builder.query<StockHistoryResponse, StockHistoryRequest>({
+      query: ({ symbol, range, interval }) => `stocks/history?symbol=${symbol}&range=${range}&interval=${interval}`,
+    }),
+    getStockDetails: builder.query<any, string>({
+      query: (symbol) => `stocks/${symbol}/details`,
+    }),
+    getSimilarStocks: builder.query<StockMover[], string>({
+      query: (symbol) => `stocks/${symbol}/similar`,
+    }),
   }),
 });
 
-export const { useSearchStocksQuery, useLazySearchStocksQuery, useGetTopMoversQuery } = stocksApi;
+export const { 
+  useSearchStocksQuery, 
+  useLazySearchStocksQuery, 
+  useGetTopMoversQuery,
+  useGetStockHistoryQuery,
+  useGetStockDetailsQuery,
+  useGetSimilarStocksQuery
+} = stocksApi;
 

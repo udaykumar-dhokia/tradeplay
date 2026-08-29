@@ -204,8 +204,12 @@ class StocksController {
           c.close !== null,
       );
 
+      const isIntraday = interval.endsWith("m") || interval.endsWith("h");
+
       const candles = quotes.map((c: any) => ({
-        time: c.date.toISOString().split("T")[0],
+        time: isIntraday
+          ? c.date.toISOString()
+          : c.date.toISOString().split("T")[0],
         open: parseFloat(c.open.toFixed(4)),
         high: parseFloat(c.high.toFixed(4)),
         low: parseFloat(c.low.toFixed(4)),
@@ -221,6 +225,120 @@ class StocksController {
 
       return res.json({ symbol, candles: deduped });
     } catch {
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+    }
+  };
+
+  /**
+   * Retrieves detailed metadata and financial summary for a stock symbol.
+   *
+   * @param {Request} req - Express request with the stock symbol in the URL params
+   * @param {Response} res - Express response object
+   * @returns {Promise<Response>} JSON response with the stock's detailed summary information
+   *
+   * @description
+   * - Reads the symbol from the route parameter and validates it is present
+   * - Fetches Yahoo Finance summary modules including price and financial data
+   * - Returns the full detailed stock metadata for the client
+   *
+   * @throws Returns 400 when the symbol is missing
+   * @throws Returns 500 when the Yahoo Finance summary request fails
+   */
+  details = async (req: Request, res: Response) => {
+    try {
+      const symbol = String(req.params.symbol || "").toUpperCase();
+      if (!symbol)
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .json({ message: "Symbol is required" });
+
+      const details = await this.yahooFinance.quoteSummary(symbol, {
+        modules: [
+          "summaryDetail",
+          "assetProfile",
+          "financialData",
+          "defaultKeyStatistics",
+          "price",
+        ],
+      });
+
+      return res.json(details);
+    } catch (error) {
+      console.error("Stock details failed:", error);
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+    }
+  };
+
+  /**
+   * Retrieves stocks similar to the provided symbol based on Yahoo Finance recommendations.
+   *
+   * @param {Request} req - Express request containing the stock symbol in the URL params
+   * @param {Response} res - Express response object
+   * @returns {Promise<Response>} JSON response with up to five similar stock quotes
+   *  
+   * @description
+   * - Validates that the symbol parameter is supplied
+   * - Fetches recommended symbols from Yahoo Finance for the selected stock
+   * - Maps the recommendation list to quote details for the top similar stocks
+   *
+   * @throws Returns 400 when the symbol is missing
+   * @throws Returns 500 when the Yahoo Finance recommendation/quote fetch fails
+   */
+  similar = async (req: Request, res: Response) => {
+    try {
+      const symbol = String(req.params.symbol || "").toUpperCase();
+      if (!symbol)
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .json({ message: "Symbol is required" });
+
+      const recommendations =
+        await this.yahooFinance.recommendationsBySymbol(symbol);
+      const recommendedSymbols = (recommendations.recommendedSymbols || [])
+        .map((s: any) => s.symbol)
+        .slice(0, 5);
+
+      if (recommendedSymbols.length === 0) {
+        return res.json([]);
+      }
+
+      const quotes = await this.yahooFinance.quote(recommendedSymbols);
+      let similarStocks = (Array.isArray(quotes) ? quotes : [quotes]).map(
+        (q: any) => ({
+          symbol: q.symbol,
+          name: q.shortName || q.longName || q.symbol,
+          price: q.regularMarketPrice,
+          change: q.regularMarketChange,
+          changePercent: q.regularMarketChangePercent,
+        }),
+      );
+
+      const topSymbols = similarStocks.map((s) => s.symbol).join(",");
+      let sparkData: any = {};
+      try {
+        const sparkRes = await fetch(
+          `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${topSymbols}&range=1d&interval=15m`,
+        );
+        sparkData = await sparkRes.json();
+      } catch (e) {
+        console.error("Sparkline fetch failed:", e);
+      }
+
+      similarStocks = similarStocks.map((stock) => {
+        const spark = sparkData[stock.symbol];
+        return {
+          ...stock,
+          sparkline: spark?.close ? spark.close.filter((c: any) => c !== null) : [],
+        };
+      });
+
+      return res.json(similarStocks);
+    } catch (error) {
+      console.error("Stock similar failed:", error);
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
         .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
@@ -325,10 +443,14 @@ class StocksController {
       const topGainers = validQuotes.slice(0, 5);
       const topLosers = validQuotes.slice(-5).reverse();
 
-      const topSymbols = [...topGainers, ...topLosers].map((s) => s.symbol).join(",");
+      const topSymbols = [...topGainers, ...topLosers]
+        .map((s) => s.symbol)
+        .join(",");
       let sparkData: any = {};
       try {
-        const sparkRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/spark?symbols=${topSymbols}&range=1d&interval=15m`);
+        const sparkRes = await fetch(
+          `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${topSymbols}&range=1d&interval=15m`,
+        );
         sparkData = await sparkRes.json();
       } catch (e) {
         console.error("Sparkline fetch failed:", e);
