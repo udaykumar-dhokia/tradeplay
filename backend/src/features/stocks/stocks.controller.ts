@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import YahooFinance from "yahoo-finance2";
+import fs from "fs";
+import path from "path";
 
 /**
  * StocksController
@@ -33,25 +35,99 @@ class StocksController {
     if (!q) return res.json([]);
 
     try {
-      const results = await this.yahooFinance.search(q, {
+      const resultsQuotes: any[] = [];
+      const lowerQ = q.toLowerCase();
+
+      const NIFTY_50 = [
+        { symbol: "RELIANCE.NS", name: "Reliance Industries" },
+        { symbol: "TCS.NS", name: "Tata Consultancy Services" },
+        { symbol: "HDFCBANK.NS", name: "HDFC Bank" },
+        { symbol: "INFY.NS", name: "Infosys" },
+        { symbol: "ICICIBANK.NS", name: "ICICI Bank" },
+        { symbol: "HINDUNILVR.NS", name: "Hindustan Unilever" },
+        { symbol: "SBIN.NS", name: "State Bank of India" },
+        { symbol: "BHARTIARTL.NS", name: "Bharti Airtel" },
+        { symbol: "ITC.NS", name: "ITC Limited" },
+        { symbol: "KOTAKBANK.NS", name: "Kotak Mahindra Bank" },
+        { symbol: "LT.NS", name: "Larsen & Toubro" },
+        { symbol: "AXISBANK.NS", name: "Axis Bank" },
+        { symbol: "BAJFINANCE.NS", name: "Bajaj Finance" },
+        { symbol: "ASIANPAINT.NS", name: "Asian Paints" },
+        { symbol: "MARUTI.NS", name: "Maruti Suzuki" },
+        { symbol: "HCLTECH.NS", name: "HCL Technologies" },
+        { symbol: "SUNPHARMA.NS", name: "Sun Pharmaceutical" },
+        { symbol: "TITAN.NS", name: "Titan Company" },
+        { symbol: "TATAMOTORS.NS", name: "Tata Motors" },
+        { symbol: "TATASTEEL.NS", name: "Tata Steel" },
+        { symbol: "M&M.NS", name: "Mahindra & Mahindra" },
+        { symbol: "WIPRO.NS", name: "Wipro" },
+        { symbol: "TECHM.NS", name: "Tech Mahindra" },
+        { symbol: "ADANIENT.NS", name: "Adani Enterprises" },
+        { symbol: "ADANIPORTS.NS", name: "Adani Ports" },
+      ];
+
+      for (const stock of NIFTY_50) {
+        if (
+          stock.symbol.toLowerCase().includes(lowerQ) ||
+          stock.name.toLowerCase().includes(lowerQ)
+        ) {
+          resultsQuotes.push({
+            symbol: stock.symbol,
+            quoteType: "EQUITY",
+            longname: stock.name,
+            shortname: stock.name,
+          });
+        }
+      }
+
+      const searchRes = await this.yahooFinance.search(q, {
         quotesCount: 20,
         newsCount: 0,
         region: "IN",
         lang: "en-IN",
       });
+      if (searchRes && searchRes.quotes) {
+        resultsQuotes.push(...searchRes.quotes);
+      }
 
-      const stocks = results.quotes
-        .filter((quote: any) => {
-          if (quote.quoteType !== "EQUITY") {
-            return false;
+      if (
+        q.length > 0 &&
+        q.length <= 15 &&
+        !q.includes(" ") &&
+        !q.includes(".")
+      ) {
+        const nsQuery = q.toUpperCase() + ".NS";
+        const boQuery = q.toUpperCase() + ".BO";
+        try {
+          const quotes = await this.yahooFinance.quote([nsQuery, boQuery]);
+          if (quotes && quotes.length > 0) {
+            resultsQuotes.push(...quotes);
           }
+        } catch (e) {}
+      }
+
+      const seen = new Set<string>();
+
+      const stocks = resultsQuotes
+        .filter((quote: any) => {
+          if (quote.quoteType !== "EQUITY") return false;
           return quote.symbol.endsWith(".NS") || quote.symbol.endsWith(".BO");
         })
         .map((quote: any) => ({
           symbol: quote.symbol,
-          name: quote.longname || quote.shortname,
+          name:
+            quote.longname ||
+            quote.shortname ||
+            quote.longName ||
+            quote.shortName ||
+            quote.symbol,
           exchange: quote.symbol.endsWith(".NS") ? "NSE" : "BSE",
-        }));
+        }))
+        .filter((stock: any) => {
+          if (seen.has(stock.symbol)) return false;
+          seen.add(stock.symbol);
+          return true;
+        });
 
       return res.json(stocks);
     } catch (error) {
@@ -184,6 +260,97 @@ class StocksController {
       return res.json(quotes);
     } catch (error) {
       console.error("Stock quotes failed:", error);
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+    }
+  };
+
+  /**
+   * Retrieves the top gainers and losers from the Nifty 500 universe.
+   *
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @returns {Promise<Response>} JSON response with top five gainers and losers
+   *
+   * @description
+   * - Reads the Nifty 500 symbol list from disk
+   * - Fetches live quote data in batches from Yahoo Finance
+   * - Filters out invalid entries without percentage change data
+   * - Sorts by percentage change and returns the top five gainers and bottom five losers
+   *
+   * @throws Returns 500 when the quote fetch or processing fails
+   */
+  movers = async (req: Request, res: Response) => {
+    try {
+      const niftyFilePath = path.join(
+        process.cwd(),
+        "src",
+        "features",
+        "stocks",
+        "nifty500.json",
+      );
+      const nifty500 = JSON.parse(fs.readFileSync(niftyFilePath, "utf8"));
+      const symbols = nifty500.map((s: any) => s.symbol);
+
+      const chunkSize = 100;
+      const chunks = [];
+      for (let i = 0; i < symbols.length; i += chunkSize) {
+        chunks.push(symbols.slice(i, i + chunkSize));
+      }
+
+      const quotePromises = chunks.map((chunk) =>
+        this.yahooFinance.quote(chunk),
+      );
+      const chunkedResults = await Promise.all(quotePromises);
+      const allQuotes = chunkedResults.flat();
+
+      const validQuotes = allQuotes
+        .filter(
+          (q: any) =>
+            q &&
+            q.regularMarketChangePercent !== undefined &&
+            q.regularMarketChangePercent !== null,
+        )
+        .map((q: any) => ({
+          symbol: q.symbol,
+          name: q.shortName || q.longName || q.symbol,
+          price: q.regularMarketPrice,
+          change: q.regularMarketChange,
+          changePercent: q.regularMarketChangePercent,
+        }));
+
+      validQuotes.sort((a: any, b: any) => b.changePercent - a.changePercent);
+
+      const topGainers = validQuotes.slice(0, 5);
+      const topLosers = validQuotes.slice(-5).reverse();
+
+      const topSymbols = [...topGainers, ...topLosers].map((s) => s.symbol).join(",");
+      let sparkData: any = {};
+      try {
+        const sparkRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/spark?symbols=${topSymbols}&range=1d&interval=15m`);
+        sparkData = await sparkRes.json();
+      } catch (e) {
+        console.error("Sparkline fetch failed:", e);
+      }
+
+      const attachSpark = (stock: any) => {
+        const spark = sparkData[stock.symbol];
+        if (spark && spark.close) {
+          // Some values might be null if no trades happened, filter them out or replace with previous close
+          stock.sparkline = spark.close.filter((c: any) => c !== null);
+        } else {
+          stock.sparkline = [];
+        }
+        return stock;
+      };
+
+      return res.json({
+        gainers: topGainers.map(attachSpark),
+        losers: topLosers.map(attachSpark),
+      });
+    } catch (error) {
+      console.error("Stock movers failed:", error);
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
         .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });

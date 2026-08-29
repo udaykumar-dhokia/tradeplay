@@ -30,7 +30,7 @@ const Login = () => {
         type: "success",
       });
 
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: any) {
       toast.add({
         title: "Error",

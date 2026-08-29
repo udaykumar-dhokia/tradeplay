@@ -115,4 +115,16 @@ router.get("/history", stocksController.history);
  */
 router.get("/quotes", stocksController.quotes);
 
+/**
+ * @swagger
+ * /api/v1/stocks/movers:
+ *   get:
+ *     summary: Get top gainers and losers from Nifty 500
+ *     tags: [Stocks]
+ *     responses:
+ *       200:
+ *         description: Top 5 gainers and losers
+ */
+router.get("/movers", stocksController.movers);
+
 export default router;

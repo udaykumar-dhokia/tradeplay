@@ -39,7 +39,7 @@ const Register = () => {
         type: "success",
       });
 
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: any) {
       toast.add({
         title: "Error",
@@ -108,7 +108,9 @@ const Register = () => {
                   type="tel"
                   placeholder="9876543210"
                   value={mobile}
-                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onChange={(e) =>
+                    setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
+                  }
                   maxLength={10}
                   pattern="[0-9]{10}"
                 />

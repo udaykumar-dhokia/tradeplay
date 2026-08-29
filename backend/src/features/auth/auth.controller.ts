@@ -171,6 +171,24 @@ class AuthController {
         .json({ message: "An unexpected error occurred during login" });
     }
   };
+
+  /**
+   * Logs out the user by clearing the authentication token cookie.
+   *
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @returns {Promise<Response>} JSON response with logout success message
+   *
+   * @description
+   * - Clears the JWT token from the HTTP-only cookie
+   * - Returns a success message to the client
+   *
+   * @throws No authentication checks; always succeeds
+   */
+  logoutUser = async (req: Request, res: Response) => {
+    res.clearCookie("token", cookieOptions);
+    return res.status(StatusCodes.OK).json({ message: "Logout successful" });
+  };
 }
 
 export default new AuthController();

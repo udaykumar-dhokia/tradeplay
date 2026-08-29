@@ -4,6 +4,7 @@ export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1/",
+    credentials: "include",
   }),
   endpoints: (builder) => ({
     login: builder.mutation({
@@ -23,8 +24,14 @@ export const authApi = createApi({
     getCurrentUser: builder.query({
       query: () => "user/me",
     }),
+    logout: builder.mutation({
+      query: () => ({
+        url: "/auth/logout",
+        method: "POST",
+      }),
+    }),
   }),
 });
 
-export const { useLoginMutation, useRegisterMutation, useGetCurrentUserQuery } =
+export const { useLoginMutation, useRegisterMutation, useGetCurrentUserQuery, useLogoutMutation } =
   authApi;

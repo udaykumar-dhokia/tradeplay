@@ -73,4 +73,18 @@ router.post("/register", AuthController.registerUser);
  */
 router.post("/login", AuthController.loginUser);
 
+/**
+ * @swagger
+ * /api/v1/auth/logout:
+ *   post:
+ *     summary: Logout a user
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/logout", AuthController.logoutUser);
+
 export default router;
