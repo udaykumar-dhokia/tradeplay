@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { Sparkline } from "@/components/custom/sparkline";
 import { useAppSelector } from "@/lib/hooks";
 import { AdvancedChartView } from "@/components/custom/advanced-chart";
+import { WishlistButton } from "@/components/custom/wishlist-button";
 
 const TIMEFRAMES = [
   { label: "1D", range: "1d", interval: "5m" },
@@ -158,9 +159,16 @@ export default function TradePage() {
               </>
             ) : (
               <>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground capitalize">
-                  {(priceData?.shortName || symbol).toLowerCase()}
-                </h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground capitalize">
+                    {(priceData?.shortName || symbol).toLowerCase()}
+                  </h1>
+                  <WishlistButton 
+                    symbol={symbol} 
+                    name={priceData?.shortName || symbol} 
+                    exchange={priceData?.exchangeName || (symbol.endsWith(".NS") ? "NSE" : "BSE")} 
+                  />
+                </div>
                 <span className="text-sm font-medium text-muted-foreground bg-muted w-fit px-2 py-0.5 mt-1">
                   {symbol.replace(".NS", "").replace(".BO", "")} &bull;{" "}
                   {priceData?.exchangeName}

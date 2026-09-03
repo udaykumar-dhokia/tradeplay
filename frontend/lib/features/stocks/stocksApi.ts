@@ -61,6 +61,9 @@ export const stocksApi = createApi({
     getSimilarStocks: builder.query<StockMover[], string>({
       query: (symbol) => `stocks/${symbol}/similar`,
     }),
+    getQuotes: builder.query<StockMover[], string>({
+      query: (symbols) => `stocks/quotes?symbols=${symbols}`,
+    }),
   }),
 });
 
@@ -70,6 +73,7 @@ export const {
   useGetTopMoversQuery,
   useGetStockHistoryQuery,
   useGetStockDetailsQuery,
-  useGetSimilarStocksQuery
+  useGetSimilarStocksQuery,
+  useGetQuotesQuery
 } = stocksApi;
 

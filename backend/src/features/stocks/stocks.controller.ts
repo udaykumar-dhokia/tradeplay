@@ -367,13 +367,37 @@ class StocksController {
       }
 
       const results = await this.yahooFinance.quote(symbols);
-      const quotes = results.map((q: any) => ({
+      const rawList = Array.isArray(results) ? results : [results];
+      let quotes = rawList.map((q: any) => ({
         symbol: q.symbol,
         name: q.shortName || q.longName || q.symbol,
         price: q.regularMarketPrice,
         change: q.regularMarketChange,
         changePercent: q.regularMarketChangePercent,
       }));
+
+      const topSymbols = quotes.map((s: any) => s.symbol).join(",");
+      let sparkData: any = {};
+      try {
+        const sparkRes = await fetch(
+          `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${topSymbols}&range=1d&interval=15m`,
+        );
+        if (sparkRes.ok) {
+          sparkData = await sparkRes.json();
+        }
+      } catch (e) {
+        console.error("Sparkline fetch failed in quotes:", e);
+      }
+
+      quotes = quotes.map((stock: any) => {
+        const spark = sparkData?.[stock.symbol];
+        return {
+          ...stock,
+          sparkline: spark?.close
+            ? spark.close.filter((c: any) => c !== null)
+            : [],
+        };
+      });
 
       return res.json(quotes);
     } catch (error) {

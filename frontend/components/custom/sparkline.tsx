@@ -1,5 +1,5 @@
 export function Sparkline({ data, color }: { data: number[]; color: string }) {
-  if (!data || data.length === 0) return <div className="w-16 h-8" />;
+  if (!data || data.length < 2) return <div className="w-16 h-8" />;
   
   const min = Math.min(...data);
   const max = Math.max(...data);
