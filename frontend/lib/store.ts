@@ -6,6 +6,7 @@ import portfolioReducer from "./features/portfolio/portfolioSlice";
 import { stocksApi } from "./features/stocks/stocksApi";
 import { transactionsApi } from "./features/transactions/transactionsApi";
 import { wishlistApi } from "./features/wishlist/wishlistApi";
+import { marketApi } from "./features/market/marketApi";
 import uiReducer from "./features/ui/uiSlice";
 
 export const makeStore = () => {
@@ -19,6 +20,7 @@ export const makeStore = () => {
       [stocksApi.reducerPath]: stocksApi.reducer,
       [transactionsApi.reducerPath]: transactionsApi.reducer,
       [wishlistApi.reducerPath]: wishlistApi.reducer,
+      [marketApi.reducerPath]: marketApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(
@@ -26,7 +28,8 @@ export const makeStore = () => {
         portfolioApi.middleware, 
         stocksApi.middleware,
         transactionsApi.middleware,
-        wishlistApi.middleware
+        wishlistApi.middleware,
+        marketApi.middleware
       ),
   });
 };

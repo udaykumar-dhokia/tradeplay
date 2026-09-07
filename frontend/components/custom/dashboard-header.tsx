@@ -9,6 +9,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowUp01Icon, ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import { StockSearch } from "@/components/custom/stock-search";
+import { MarketStatusBadge } from "@/components/custom/MarketStatusBadge";
 
 export const DashboardHeader = () => {
   const { data: currentData, isLoading: isCurrentLoading } =
@@ -43,6 +44,9 @@ export const DashboardHeader = () => {
       </div>
 
       <div className="flex items-center gap-6 text-sm">
+        <div className="hidden sm:block">
+          <MarketStatusBadge />
+        </div>
         {(isCurrentLoading || isOriginalLoading) &&
         (!currentData || !originalData) ? (
           <div className="h-8 w-48 bg-muted animate-pulse rounded"></div>

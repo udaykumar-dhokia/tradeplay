@@ -12,6 +12,7 @@ import StocksRoutes from "./features/stocks/stocks.route";
 import PortfolioRoutes from "./features/portfolio/portfolio.route";
 import TransactionsRoutes from "./features/transactions/transactions.route";
 import WishlistRoutes from "./features/wishlist/wishlist.route";
+import MarketRoutes from "./features/market/market.route";
 import { createOpenApiDocument, mountApiRouter } from "./lib/swagger";
 
 const PORT = process.env.PORT || 3000;
@@ -38,6 +39,7 @@ mountApiRouter(app, "/api/v1/stocks", StocksRoutes);
 mountApiRouter(app, "/api/v1/portfolio", PortfolioRoutes);
 mountApiRouter(app, "/api/v1/transactions", TransactionsRoutes);
 mountApiRouter(app, "/api/v1/wishlist", WishlistRoutes);
+mountApiRouter(app, "/api/v1/market", MarketRoutes);
 app.use(
   "/api-docs",
   swaggerUi.serve,
