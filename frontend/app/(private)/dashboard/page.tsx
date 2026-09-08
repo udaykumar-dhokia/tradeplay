@@ -22,6 +22,9 @@ export default function DashboardPage() {
   const wishlistSymbols = wishlistData?.slice(0, 4).map((item) => item.symbol).join(",") || "";
   const { data: quotesData, isLoading: quotesLoading } = useGetQuotesQuery(wishlistSymbols, { skip: !wishlistSymbols });
 
+  const positionSymbols = positionsData?.positions?.slice(0, 5).map((item: any) => item.symbol).join(",") || "";
+  const { data: positionQuotes, isLoading: positionQuotesLoading } = useGetQuotesQuery(positionSymbols, { skip: !positionSymbols });
+
   const currentNum = parseFloat(currentBalanceData?.current_balance || "0");
   const originalNum = parseFloat(originalBalanceData?.original_balance || "0");
   const diff = currentNum - originalNum;
@@ -144,37 +147,71 @@ export default function DashboardPage() {
               </Link>
             </div>
             
-            <div className="bg-card border overflow-hidden shadow-sm rounded-md">
-              {positionsLoading ? (
+            <div className="bg-card border overflow-hidden shadow-sm">
+              {positionsLoading || (positionSymbols && positionQuotesLoading) ? (
                 <div className="flex flex-col p-4 gap-4">
                   <Skeleton className="h-10 w-full" />
                   <Skeleton className="h-10 w-full" />
                 </div>
               ) : positionsData?.positions && positionsData.positions.length > 0 ? (
                 <div className="flex flex-col divide-y">
-                  {positionsData.positions.slice(0, 5).map((pos) => {
-                    const diff = pos.currentPrice - pos.averagePrice;
-                    const isProfit = diff >= 0;
-                    const changePercent = (diff / pos.averagePrice) * 100;
+                  {positionsData.positions.slice(0, 5).map((pos: any) => {
+                    const quote = positionQuotes?.find((q) => q.symbol === pos.symbol);
+                    const avgPrice = parseFloat(pos.average_price?.toString() || pos.averagePrice?.toString() || "0");
+                    const currentPrice = quote?.price ?? avgPrice;
+                    const quantity = pos.quantity || 0;
                     
+                    const totalCost = avgPrice * quantity;
+                    const totalCurrent = currentPrice * quantity;
+                    const diff = totalCurrent - totalCost;
+                    const isProfit = diff >= 0;
+                    const changePercent = totalCost > 0 ? (diff / totalCost) * 100 : 0;
+                    const cleanSymbol = pos.symbol.replace(".NS", "").replace(".BO", "");
+
                     return (
                       <Link
                         key={pos.symbol}
                         href={`/trade?symbol=${pos.symbol}`}
-                        className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                        className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors group"
                       >
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">{pos.symbol.replace(".NS", "").replace(".BO", "")}</span>
-                          <span className="text-xs text-muted-foreground">{pos.quantity} Shares @ {formatCurrency(pos.averagePrice)}</span>
+                        <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
+                          <img
+                            src={`https://api.dicebear.com/10.x/initials/svg?seed=${cleanSymbol}`}
+                            alt={cleanSymbol}
+                            className="w-10 h-10 rounded-full shadow-xs shrink-0"
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-semibold truncate text-foreground text-sm">
+                              {cleanSymbol}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate">
+                              {quantity} {quantity === 1 ? "Share" : "Shares"} @ {formatCurrency(avgPrice)}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end">
-                          <span className="font-medium text-sm">{formatCurrency(pos.currentPrice)}</span>
-                          <span className={cn("text-xs font-semibold", isProfit ? "text-emerald-500" : "text-rose-500")}>
-                            {isProfit ? "+" : ""}{formatCurrency(diff * pos.quantity)} ({changePercent.toFixed(2)}%)
-                          </span>
+
+                        <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+                          {quote?.sparkline && quote.sparkline.length > 0 && (
+                            <div className="hidden sm:block w-20">
+                              <Sparkline data={quote.sparkline} color={isProfit ? "#22c55e" : "#ef4444"} />
+                            </div>
+                          )}
+                          <div className="flex flex-col items-end shrink-0 min-w-17.5">
+                            <span className="font-medium text-sm">
+                              {formatCurrency(totalCurrent)}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-xs font-semibold",
+                                isProfit ? "text-emerald-500" : "text-rose-500",
+                              )}
+                            >
+                              {isProfit ? "+" : ""}{formatCurrency(diff)} ({isProfit ? "+" : ""}{changePercent.toFixed(2)}%)
+                            </span>
+                          </div>
                         </div>
                       </Link>
-                    )
+                    );
                   })}
                 </div>
               ) : (
@@ -191,7 +228,7 @@ export default function DashboardPage() {
               <h2 className="text-xl font-bold">Recent Transactions</h2>
             </div>
             
-            <div className="bg-card border overflow-hidden shadow-sm rounded-md">
+            <div className="bg-card border overflow-hidden shadow-sm">
               {transactionsLoading ? (
                 <div className="flex flex-col p-4 gap-4">
                   <Skeleton className="h-10 w-full" />
@@ -199,23 +236,64 @@ export default function DashboardPage() {
                 </div>
               ) : transactionsData?.transactions && transactionsData.transactions.length > 0 ? (
                 <div className="flex flex-col divide-y">
-                  {transactionsData.transactions.map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between p-4">
-                      <div className="flex items-center gap-3">
-                        <div className={cn("p-2 rounded-full", tx.type === "BUY" ? "bg-blue-500/10 text-blue-600" : "bg-purple-500/10 text-purple-600")}>
-                          <span className="text-xs font-bold uppercase">{tx.type}</span>
+                  {transactionsData.transactions.map((tx: any) => {
+                    const cleanSymbol = (tx.symbol || "").replace(".NS", "").replace(".BO", "");
+                    const isBuy = tx.type === "BUY";
+                    const shares = tx.total_shares ?? tx.quantity ?? 0;
+                    const price = parseFloat(tx.price?.toString() || "0");
+                    const totalAmount = parseFloat(tx.total_amount?.toString() || (price * shares).toString());
+
+                    const rawDate = tx.created_at || tx.createdAt;
+                    const dateObj = rawDate ? new Date(rawDate) : null;
+                    const formattedDate = dateObj && !isNaN(dateObj.getTime())
+                      ? dateObj.toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "Recent";
+
+                    return (
+                      <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
+                          <img
+                            src={`https://api.dicebear.com/10.x/initials/svg?seed=${cleanSymbol}`}
+                            alt={cleanSymbol}
+                            className="w-10 h-10 rounded-full shadow-xs shrink-0"
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-sm text-foreground truncate">
+                                {cleanSymbol}
+                              </span>
+                              <span
+                                className={cn(
+                                  "px-1.5 py-0.5 text-[10px] font-bold uppercase rounded-xs tracking-wider",
+                                  isBuy
+                                    ? "bg-primary/10 text-primary"
+                                    : "bg-rose-500/10 text-rose-600",
+                                )}
+                              >
+                                {tx.type}
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground truncate">
+                              {formattedDate} • {tx.exchange || "NSE"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-sm">{tx.symbol.replace(".NS", "").replace(".BO", "")}</span>
-                          <span className="text-xs text-muted-foreground">{new Date(tx.createdAt).toLocaleDateString()}</span>
+
+                        <div className="flex flex-col items-end shrink-0 min-w-17.5">
+                          <span className="font-medium text-sm text-foreground">
+                            {formatCurrency(totalAmount)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {shares} {shares === 1 ? "Share" : "Shares"} @ {formatCurrency(price)}
+                          </span>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className="font-medium text-sm">{tx.quantity} Shares</span>
-                        <span className="text-xs text-muted-foreground">@ {formatCurrency(tx.price)}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-8 text-center text-muted-foreground text-sm">
@@ -238,7 +316,7 @@ export default function DashboardPage() {
               </Link>
             </div>
             
-            <div className="bg-card border overflow-hidden shadow-sm rounded-md">
+            <div className="bg-card border overflow-hidden shadow-sm">
               {moversLoading ? (
                 <div className="flex flex-col p-4 gap-4">
                   <Skeleton className="h-10 w-full" />
@@ -291,7 +369,7 @@ export default function DashboardPage() {
               </Link>
             </div>
             
-            <div className="bg-card border overflow-hidden shadow-sm rounded-md">
+            <div className="bg-card border overflow-hidden shadow-sm">
               {wishlistLoading || quotesLoading ? (
                 <div className="flex flex-col p-4 gap-4">
                   <Skeleton className="h-10 w-full" />

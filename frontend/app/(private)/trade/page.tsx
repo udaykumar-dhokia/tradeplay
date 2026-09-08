@@ -10,7 +10,11 @@ import {
 } from "@/lib/features/stocks/stocksApi";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowUp01Icon, ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowUp01Icon,
+  ArrowDown01Icon,
+  ArrowUpDownIcon,
+} from "@hugeicons/core-free-icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AreaChart,
@@ -25,6 +29,7 @@ import { Sparkline } from "@/components/custom/sparkline";
 import { useAppSelector } from "@/lib/hooks";
 import { AdvancedChartView } from "@/components/custom/advanced-chart";
 import { WishlistButton } from "@/components/custom/wishlist-button";
+import { TradeOrderPanel } from "@/components/custom/trade-order-panel";
 
 const TIMEFRAMES = [
   { label: "1D", range: "1d", interval: "5m" },
@@ -43,6 +48,13 @@ export default function TradePage() {
   const advancedMode = useAppSelector((state) => state.ui.advancedMode);
 
   const [activeTimeframe, setActiveTimeframe] = useState(TIMEFRAMES[5]); // Default 1Y
+  const [isTradeOpen, setIsTradeOpen] = useState(false);
+  const [orderType, setOrderType] = useState<"BUY" | "SELL">("BUY");
+
+  const openTrade = (type: "BUY" | "SELL") => {
+    setOrderType(type);
+    setIsTradeOpen(true);
+  };
 
   const { data: details, isLoading: detailsLoading } = useGetStockDetailsQuery(
     symbol || skipToken,
@@ -138,7 +150,7 @@ export default function TradePage() {
   }
 
   return (
-    <div className="flex flex-col max-w-6xl mx-auto w-full gap-8 pb-12">
+    <div className="flex flex-col max-w-6xl mx-auto w-full gap-8 pb-20 px-4">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
         <div className="flex items-center gap-4">
           {detailsLoading ? (
@@ -163,10 +175,13 @@ export default function TradePage() {
                   <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground capitalize">
                     {(priceData?.shortName || symbol).toLowerCase()}
                   </h1>
-                  <WishlistButton 
-                    symbol={symbol} 
-                    name={priceData?.shortName || symbol} 
-                    exchange={priceData?.exchangeName || (symbol.endsWith(".NS") ? "NSE" : "BSE")} 
+                  <WishlistButton
+                    symbol={symbol}
+                    name={priceData?.shortName || symbol}
+                    exchange={
+                      priceData?.exchangeName ||
+                      (symbol.endsWith(".NS") ? "NSE" : "BSE")
+                    }
                   />
                 </div>
                 <span className="text-sm font-medium text-muted-foreground bg-muted w-fit px-2 py-0.5 mt-1">
@@ -178,7 +193,7 @@ export default function TradePage() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:items-end">
+        <div className="flex flex-col sm:items-end gap-2">
           {detailsLoading ? (
             <>
               <Skeleton className="h-10 w-32 mb-2" />
@@ -203,12 +218,29 @@ export default function TradePage() {
                   ({Math.abs(timeframeStats.changePercent).toFixed(2)}%)
                 </span>
               </div>
+
+              {/* Action Buttons in Header */}
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  onClick={() => openTrade("BUY")}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs uppercase px-5 py-2 transition-all shadow-xs"
+                >
+                  Buy
+                </button>
+                <button
+                  onClick={() => openTrade("SELL")}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase px-5 py-2 transition-all shadow-xs"
+                >
+                  Sell
+                </button>
+              </div>
             </>
           )}
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 bg-card p-4 sm:p-6">
+      {/* Chart Section */}
+      <div className="flex flex-col gap-4 bg-card p-4 sm:p-6 border">
         <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
           {TIMEFRAMES.map((tf) => (
             <button
@@ -282,6 +314,7 @@ export default function TradePage() {
         </div>
       </div>
 
+      {/* Statistics & About Company Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 flex flex-col gap-4">
           <h2 className="text-xl font-bold">Key Statistics</h2>
@@ -376,6 +409,7 @@ export default function TradePage() {
         </div>
       </div>
 
+      {/* Similar Stocks */}
       {similarStocks && similarStocks.length > 0 && (
         <div className="flex flex-col gap-4 mt-4">
           <h2 className="text-xl font-bold">Similar Stocks</h2>
@@ -428,6 +462,31 @@ export default function TradePage() {
           </div>
         </div>
       )}
+
+      {/* Floating Trigger Button (when order window is closed) */}
+      {!isTradeOpen && (
+        <button
+          onClick={() => openTrade("BUY")}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-5 py-3 bg-primary text-primary-foreground font-bold shadow-xl hover:shadow-2xl hover:scale-101 active:scale-95 transition-all text-sm"
+        >
+          <HugeiconsIcon icon={ArrowUpDownIcon} size={18} strokeWidth={2.5} />
+          <span>Trade</span>
+        </button>
+      )}
+
+      {/* Floating Bottom-Right Corner Trade Sheet */}
+      <TradeOrderPanel
+        symbol={symbol}
+        name={priceData?.shortName || symbol}
+        exchange={
+          priceData?.exchangeName || (symbol.endsWith(".NS") ? "NSE" : "BSE")
+        }
+        currentPrice={priceData?.regularMarketPrice || 0}
+        isOpen={isTradeOpen}
+        onClose={() => setIsTradeOpen(false)}
+        orderType={orderType}
+        setOrderType={setOrderType}
+      />
     </div>
   );
 }
