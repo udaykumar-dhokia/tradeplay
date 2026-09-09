@@ -21,6 +21,7 @@ interface TradeOrderPanelProps {
   onClose: () => void;
   orderType: "BUY" | "SELL";
   setOrderType: (type: "BUY" | "SELL") => void;
+  initialQuantity?: number;
 }
 
 export const TradeOrderPanel = ({
@@ -32,8 +33,9 @@ export const TradeOrderPanel = ({
   onClose,
   orderType,
   setOrderType,
+  initialQuantity,
 }: TradeOrderPanelProps) => {
-  const [quantity, setQuantity] = useState<number | "">("");
+  const [quantity, setQuantity] = useState<number | "">(initialQuantity || "");
   const [executeTrade, { isLoading }] = useExecuteTradeMutation();
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -50,7 +52,12 @@ export const TradeOrderPanel = ({
   useEffect(() => {
     setErrorMsg("");
     setSuccessMsg("");
-  }, [symbol, orderType]);
+    if (initialQuantity && initialQuantity > 0) {
+      setQuantity(initialQuantity);
+    } else if (!isOpen) {
+      setQuantity("");
+    }
+  }, [symbol, orderType, isOpen, initialQuantity]);
 
   const cleanSymbol = symbol.replace(".NS", "").replace(".BO", "");
   const estimatedValue = currentPrice * (Number(quantity) || 0);
@@ -80,6 +87,7 @@ export const TradeOrderPanel = ({
         type: "success",
       });
       setQuantity("");
+      onClose();
     } catch (err: any) {
       const msg =
         err.data?.message ||
@@ -115,7 +123,7 @@ export const TradeOrderPanel = ({
       {/* Trade Sheet / Bottom-Right Floating Card */}
       <div
         className={cn(
-          "fixed z-50 bg-card border border-border text-card-foreground shadow-2xl overflow-hidden flex flex-col",
+          "fixed z-50 bg-card border border-border text-card-foreground shadow-sm overflow-hidden flex flex-col",
           // Mobile: Bottom sheet docked to bottom screen
           "bottom-0 inset-x-0 max-h-[90vh]",
           // Desktop: Docked in bottom-right corner

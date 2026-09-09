@@ -1,33 +1,84 @@
 "use client";
 
-import { useGetCurrentBalanceQuery, useGetOriginalBalanceQuery } from "@/lib/features/portfolio/portfolioApi";
-import { useGetPositionsQuery, useGetTransactionsQuery } from "@/lib/features/transactions/transactionsApi";
-import { useGetTopMoversQuery, useGetQuotesQuery } from "@/lib/features/stocks/stocksApi";
+import { useMemo } from "react";
+
+import {
+  useGetCurrentBalanceQuery,
+  useGetOriginalBalanceQuery,
+} from "@/lib/features/portfolio/portfolioApi";
+import {
+  useGetPositionsQuery,
+  useGetTransactionsQuery,
+} from "@/lib/features/transactions/transactionsApi";
+import {
+  useGetTopMoversQuery,
+  useGetQuotesQuery,
+} from "@/lib/features/stocks/stocksApi";
 import { useGetWishlistQuery } from "@/lib/features/wishlist/wishlistApi";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowUp01Icon, ArrowDown01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowUp01Icon,
+  ArrowDown01Icon,
+  ArrowRight01Icon,
+} from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Sparkline } from "@/components/custom/sparkline";
 
 export default function DashboardPage() {
-  const { data: currentBalanceData, isLoading: currentLoading } = useGetCurrentBalanceQuery();
-  const { data: originalBalanceData, isLoading: originalLoading } = useGetOriginalBalanceQuery();
-  const { data: positionsData, isLoading: positionsLoading } = useGetPositionsQuery();
-  const { data: transactionsData, isLoading: transactionsLoading } = useGetTransactionsQuery({ limit: 5, offset: 0 });
+  const { data: currentBalanceData, isLoading: currentLoading } =
+    useGetCurrentBalanceQuery();
+  const { data: originalBalanceData, isLoading: originalLoading } =
+    useGetOriginalBalanceQuery();
+  const { data: positionsData, isLoading: positionsLoading } =
+    useGetPositionsQuery();
+  const { data: transactionsData, isLoading: transactionsLoading } =
+    useGetTransactionsQuery({ limit: 5, offset: 0 });
   const { data: moversData, isLoading: moversLoading } = useGetTopMoversQuery();
-  const { data: wishlistData, isLoading: wishlistLoading } = useGetWishlistQuery();
+  const { data: wishlistData, isLoading: wishlistLoading } =
+    useGetWishlistQuery();
 
-  const wishlistSymbols = wishlistData?.slice(0, 4).map((item) => item.symbol).join(",") || "";
-  const { data: quotesData, isLoading: quotesLoading } = useGetQuotesQuery(wishlistSymbols, { skip: !wishlistSymbols });
+  const wishlistSymbols =
+    wishlistData
+      ?.slice(0, 4)
+      .map((item) => item.symbol)
+      .join(",") || "";
+  const { data: quotesData, isLoading: quotesLoading } = useGetQuotesQuery(
+    wishlistSymbols,
+    { skip: !wishlistSymbols },
+  );
 
-  const positionSymbols = positionsData?.positions?.slice(0, 5).map((item: any) => item.symbol).join(",") || "";
-  const { data: positionQuotes, isLoading: positionQuotesLoading } = useGetQuotesQuery(positionSymbols, { skip: !positionSymbols });
+  const positionSymbols = useMemo(
+    () =>
+      positionsData?.positions
+        ?.map((item: any) => item.symbol)
+        .join(",") || "",
+    [positionsData],
+  );
+  const { data: positionQuotes, isLoading: positionQuotesLoading } =
+    useGetQuotesQuery(positionSymbols, { skip: !positionSymbols });
 
   const currentNum = parseFloat(currentBalanceData?.current_balance || "0");
   const originalNum = parseFloat(originalBalanceData?.original_balance || "0");
-  const diff = currentNum - originalNum;
+
+  // Calculate current market value of all open positions
+  const openPositionsValue = useMemo(() => {
+    if (!positionsData?.positions) return 0;
+    return positionsData.positions.reduce((total: number, pos: any) => {
+      const quote = positionQuotes?.find((q) => q.symbol === pos.symbol);
+      const avgPrice = parseFloat(
+        pos.average_price?.toString() || pos.averagePrice?.toString() || "0",
+      );
+      const currentPrice = quote?.price ?? avgPrice;
+      const qty = pos.quantity || 0;
+      return total + currentPrice * qty;
+    }, 0);
+  }, [positionsData, positionQuotes]);
+
+  // Net Worth = Cash Balance + Current Market Value of Open Positions
+  const netWorth = currentNum + openPositionsValue;
+  const diff = netWorth - originalNum;
   const isPositive = diff >= 0;
   const percentChange = originalNum > 0 ? (diff / originalNum) * 100 : 0;
   const openPositionsCount = positionsData?.positions?.length || 0;
@@ -58,10 +109,12 @@ export default function DashboardPage() {
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Net Worth */}
           <div className="bg-white dark:bg-card border p-5 flex flex-col justify-center shadow-sm">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1 tracking-wider uppercase">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-1 tracking-wider ">
               Net Worth
             </h3>
-            {currentLoading || originalLoading ? (
+            {currentLoading ||
+            originalLoading ||
+            (positionSymbols && positionQuotesLoading) ? (
               <div className="flex flex-col gap-1 mt-1">
                 <Skeleton className="h-8 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
@@ -69,7 +122,7 @@ export default function DashboardPage() {
             ) : (
               <div className="flex flex-col">
                 <p className="text-2xl font-black text-foreground">
-                  {formatCurrency(currentNum)}
+                  {formatCurrency(netWorth)}
                 </p>
                 <div
                   className={cn(
@@ -83,7 +136,8 @@ export default function DashboardPage() {
                     className="mr-0.5"
                     strokeWidth={2.5}
                   />
-                  {formatCurrency(Math.abs(diff))} ({Math.abs(percentChange).toFixed(2)}%)
+                  {formatCurrency(Math.abs(diff))} (
+                  {Math.abs(percentChange).toFixed(2)}%)
                 </div>
               </div>
             )}
@@ -91,7 +145,7 @@ export default function DashboardPage() {
 
           {/* Original Balance */}
           <div className="bg-white dark:bg-card border p-5 flex flex-col justify-center shadow-sm">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1 tracking-wider uppercase">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-1 tracking-wider ">
               Invested Amount
             </h3>
             {originalLoading ? (
@@ -105,7 +159,7 @@ export default function DashboardPage() {
 
           {/* Open Positions */}
           <div className="bg-white dark:bg-card border p-5 flex flex-col justify-center shadow-sm">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1 tracking-wider uppercase">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-1 tracking-wider ">
               Open Positions
             </h3>
             {positionsLoading ? (
@@ -119,7 +173,7 @@ export default function DashboardPage() {
 
           {/* Total Trades */}
           <div className="bg-white dark:bg-card border p-5 flex flex-col justify-center shadow-sm">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1 tracking-wider uppercase">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-1 tracking-wider ">
               Total Trades
             </h3>
             {transactionsLoading ? (
@@ -137,36 +191,49 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-4 sm:px-0 max-w-5xl mx-auto w-full">
         {/* Left Column */}
         <div className="flex flex-col gap-8">
-          
           {/* Your Positions */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-bold">Your Positions</h2>
-              <Link href="/portfolio" className="text-sm text-primary hover:underline flex items-center gap-1">
+              <Link
+                href="/portfolio"
+                className="text-sm text-primary hover:underline flex items-center gap-1"
+              >
                 View All <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
               </Link>
             </div>
-            
+
             <div className="bg-card border overflow-hidden shadow-sm">
-              {positionsLoading || (positionSymbols && positionQuotesLoading) ? (
+              {positionsLoading ||
+              (positionSymbols && positionQuotesLoading) ? (
                 <div className="flex flex-col p-4 gap-4">
                   <Skeleton className="h-10 w-full" />
                   <Skeleton className="h-10 w-full" />
                 </div>
-              ) : positionsData?.positions && positionsData.positions.length > 0 ? (
+              ) : positionsData?.positions &&
+                positionsData.positions.length > 0 ? (
                 <div className="flex flex-col divide-y">
                   {positionsData.positions.slice(0, 5).map((pos: any) => {
-                    const quote = positionQuotes?.find((q) => q.symbol === pos.symbol);
-                    const avgPrice = parseFloat(pos.average_price?.toString() || pos.averagePrice?.toString() || "0");
+                    const quote = positionQuotes?.find(
+                      (q) => q.symbol === pos.symbol,
+                    );
+                    const avgPrice = parseFloat(
+                      pos.average_price?.toString() ||
+                        pos.averagePrice?.toString() ||
+                        "0",
+                    );
                     const currentPrice = quote?.price ?? avgPrice;
                     const quantity = pos.quantity || 0;
-                    
+
                     const totalCost = avgPrice * quantity;
                     const totalCurrent = currentPrice * quantity;
                     const diff = totalCurrent - totalCost;
                     const isProfit = diff >= 0;
-                    const changePercent = totalCost > 0 ? (diff / totalCost) * 100 : 0;
-                    const cleanSymbol = pos.symbol.replace(".NS", "").replace(".BO", "");
+                    const changePercent =
+                      totalCost > 0 ? (diff / totalCost) * 100 : 0;
+                    const cleanSymbol = pos.symbol
+                      .replace(".NS", "")
+                      .replace(".BO", "");
 
                     return (
                       <Link
@@ -185,7 +252,8 @@ export default function DashboardPage() {
                               {cleanSymbol}
                             </span>
                             <span className="text-xs text-muted-foreground truncate">
-                              {quantity} {quantity === 1 ? "Share" : "Shares"} @ {formatCurrency(avgPrice)}
+                              {quantity} {quantity === 1 ? "Share" : "Shares"} @{" "}
+                              {formatCurrency(avgPrice)}
                             </span>
                           </div>
                         </div>
@@ -193,7 +261,10 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-4 sm:gap-6 shrink-0">
                           {quote?.sparkline && quote.sparkline.length > 0 && (
                             <div className="hidden sm:block w-20">
-                              <Sparkline data={quote.sparkline} color={isProfit ? "#22c55e" : "#ef4444"} />
+                              <Sparkline
+                                data={quote.sparkline}
+                                color={isProfit ? "#22c55e" : "#ef4444"}
+                              />
                             </div>
                           )}
                           <div className="flex flex-col items-end shrink-0 min-w-17.5">
@@ -206,7 +277,9 @@ export default function DashboardPage() {
                                 isProfit ? "text-emerald-500" : "text-rose-500",
                               )}
                             >
-                              {isProfit ? "+" : ""}{formatCurrency(diff)} ({isProfit ? "+" : ""}{changePercent.toFixed(2)}%)
+                              {isProfit ? "+" : ""}
+                              {formatCurrency(diff)} ({isProfit ? "+" : ""}
+                              {changePercent.toFixed(2)}%)
                             </span>
                           </div>
                         </div>
@@ -227,34 +300,44 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-bold">Recent Transactions</h2>
             </div>
-            
+
             <div className="bg-card border overflow-hidden shadow-sm">
               {transactionsLoading ? (
                 <div className="flex flex-col p-4 gap-4">
                   <Skeleton className="h-10 w-full" />
                   <Skeleton className="h-10 w-full" />
                 </div>
-              ) : transactionsData?.transactions && transactionsData.transactions.length > 0 ? (
+              ) : transactionsData?.transactions &&
+                transactionsData.transactions.length > 0 ? (
                 <div className="flex flex-col divide-y">
                   {transactionsData.transactions.map((tx: any) => {
-                    const cleanSymbol = (tx.symbol || "").replace(".NS", "").replace(".BO", "");
+                    const cleanSymbol = (tx.symbol || "")
+                      .replace(".NS", "")
+                      .replace(".BO", "");
                     const isBuy = tx.type === "BUY";
                     const shares = tx.total_shares ?? tx.quantity ?? 0;
                     const price = parseFloat(tx.price?.toString() || "0");
-                    const totalAmount = parseFloat(tx.total_amount?.toString() || (price * shares).toString());
+                    const totalAmount = parseFloat(
+                      tx.total_amount?.toString() ||
+                        (price * shares).toString(),
+                    );
 
                     const rawDate = tx.created_at || tx.createdAt;
                     const dateObj = rawDate ? new Date(rawDate) : null;
-                    const formattedDate = dateObj && !isNaN(dateObj.getTime())
-                      ? dateObj.toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : "Recent";
+                    const formattedDate =
+                      dateObj && !isNaN(dateObj.getTime())
+                        ? dateObj.toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "Recent";
 
                     return (
-                      <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                      <div
+                        key={tx.id}
+                        className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                      >
                         <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
                           <img
                             src={`https://api.dicebear.com/10.x/initials/svg?seed=${cleanSymbol}`}
@@ -268,7 +351,7 @@ export default function DashboardPage() {
                               </span>
                               <span
                                 className={cn(
-                                  "px-1.5 py-0.5 text-[10px] font-bold uppercase rounded-xs tracking-wider",
+                                  "px-1.5 py-0.5 text-[10px] font-bold  rounded-xs tracking-wider",
                                   isBuy
                                     ? "bg-primary/10 text-primary"
                                     : "bg-rose-500/10 text-rose-600",
@@ -288,7 +371,8 @@ export default function DashboardPage() {
                             {formatCurrency(totalAmount)}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {shares} {shares === 1 ? "Share" : "Shares"} @ {formatCurrency(price)}
+                            {shares} {shares === 1 ? "Share" : "Shares"} @{" "}
+                            {formatCurrency(price)}
                           </span>
                         </div>
                       </div>
@@ -306,16 +390,18 @@ export default function DashboardPage() {
 
         {/* Right Column */}
         <div className="flex flex-col gap-8">
-          
           {/* Market Movers Mini */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-bold">Top Movers</h2>
-              <Link href="/explore" className="text-sm text-primary hover:underline flex items-center gap-1">
+              <Link
+                href="/explore"
+                className="text-sm text-primary hover:underline flex items-center gap-1"
+              >
                 Explore <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
               </Link>
             </div>
-            
+
             <div className="bg-card border overflow-hidden shadow-sm">
               {moversLoading ? (
                 <div className="flex flex-col p-4 gap-4">
@@ -340,10 +426,15 @@ export default function DashboardPage() {
 
                       <div className="flex items-center gap-4 shrink-0">
                         <div className="hidden sm:block w-20">
-                          <Sparkline data={stock.sparkline || []} color="#22c55e" />
+                          <Sparkline
+                            data={stock.sparkline || []}
+                            color="#22c55e"
+                          />
                         </div>
                         <div className="flex flex-col items-end shrink-0">
-                          <span className="font-medium text-sm">₹{stock.price.toFixed(2)}</span>
+                          <span className="font-medium text-sm">
+                            ₹{stock.price.toFixed(2)}
+                          </span>
                           <span className="text-xs font-semibold text-green-500">
                             +{stock.changePercent.toFixed(2)}%
                           </span>
@@ -364,11 +455,14 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-bold">Your Wishlist</h2>
-              <Link href="/wishlist" className="text-sm text-primary hover:underline flex items-center gap-1">
+              <Link
+                href="/wishlist"
+                className="text-sm text-primary hover:underline flex items-center gap-1"
+              >
                 View All <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
               </Link>
             </div>
-            
+
             <div className="bg-card border overflow-hidden shadow-sm">
               {wishlistLoading || quotesLoading ? (
                 <div className="flex flex-col p-4 gap-4">
@@ -385,14 +479,28 @@ export default function DashboardPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-sm">{item.symbol.replace(".NS", "").replace(".BO", "")}</span>
-                          <span className="text-xs text-muted-foreground truncate max-w-[150px]">{item.name}</span>
+                          <span className="font-semibold text-sm">
+                            {item.symbol.replace(".NS", "").replace(".BO", "")}
+                          </span>
+                          <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                            {item.name}
+                          </span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="font-medium text-sm">{formatCurrency(item.price)}</span>
-                        <span className={cn("text-xs font-semibold", item.changePercent >= 0 ? "text-green-500" : "text-red-500")}>
-                          {item.changePercent >= 0 ? "+" : ""}{item.changePercent?.toFixed(2) || "0.00"}%
+                        <span className="font-medium text-sm">
+                          {formatCurrency(item.price)}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xs font-semibold",
+                            item.changePercent >= 0
+                              ? "text-green-500"
+                              : "text-red-500",
+                          )}
+                        >
+                          {item.changePercent >= 0 ? "+" : ""}
+                          {item.changePercent?.toFixed(2) || "0.00"}%
                         </span>
                       </div>
                     </Link>
@@ -405,7 +513,6 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-
         </div>
       </div>
     </div>

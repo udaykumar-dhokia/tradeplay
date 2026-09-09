@@ -1,10 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   useGetCurrentBalanceQuery,
   useGetOriginalBalanceQuery,
 } from "@/lib/features/portfolio/portfolioApi";
+import { useGetPositionsQuery } from "@/lib/features/transactions/transactionsApi";
+import { useGetQuotesQuery } from "@/lib/features/stocks/stocksApi";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowUp01Icon, ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
@@ -16,11 +19,39 @@ export const DashboardHeader = () => {
     useGetCurrentBalanceQuery();
   const { data: originalData, isLoading: isOriginalLoading } =
     useGetOriginalBalanceQuery();
+  const { data: positionsData, isLoading: isPositionsLoading } =
+    useGetPositionsQuery();
 
-  const currentBalance = parseFloat(currentData?.current_balance || "0");
+  const positionSymbols = useMemo(
+    () =>
+      positionsData?.positions
+        ?.map((item: any) => item.symbol)
+        .join(",") || "",
+    [positionsData],
+  );
+  const { data: positionQuotes, isLoading: isQuotesLoading } = useGetQuotesQuery(
+    positionSymbols,
+    { skip: !positionSymbols },
+  );
+
+  const currentCash = parseFloat(currentData?.current_balance || "0");
   const originalBalance = parseFloat(originalData?.original_balance || "0");
 
-  const diff = currentBalance - originalBalance;
+  const openPositionsValue = useMemo(() => {
+    if (!positionsData?.positions) return 0;
+    return positionsData.positions.reduce((total: number, pos: any) => {
+      const quote = positionQuotes?.find((q) => q.symbol === pos.symbol);
+      const avgPrice = parseFloat(
+        pos.average_price?.toString() || pos.averagePrice?.toString() || "0",
+      );
+      const currentPrice = quote?.price ?? avgPrice;
+      const qty = pos.quantity || 0;
+      return total + currentPrice * qty;
+    }, 0);
+  }, [positionsData, positionQuotes]);
+
+  const netValue = currentCash + openPositionsValue;
+  const diff = netValue - originalBalance;
   const isPositive = diff >= 0;
   const percentChange =
     originalBalance > 0 ? (diff / originalBalance) * 100 : 0;
@@ -31,6 +62,13 @@ export const DashboardHeader = () => {
       currency: "INR",
     }).format(val);
   };
+
+  const isNetLoading =
+    (isCurrentLoading ||
+      isOriginalLoading ||
+      isPositionsLoading ||
+      (positionSymbols && isQuotesLoading)) &&
+    (!currentData || !originalData);
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-15 lg:px-6 justify-between w-full">
@@ -47,8 +85,7 @@ export const DashboardHeader = () => {
         <div className="hidden sm:block">
           <MarketStatusBadge />
         </div>
-        {(isCurrentLoading || isOriginalLoading) &&
-        (!currentData || !originalData) ? (
+        {isNetLoading ? (
           <div className="h-8 w-48 bg-muted animate-pulse rounded"></div>
         ) : (
           <div className="flex items-center gap-4">
@@ -57,7 +94,7 @@ export const DashboardHeader = () => {
                 Net Value
               </span>
               <span className="font-bold text-base">
-                {formatCurrency(currentBalance)}
+                {formatCurrency(netValue)}
               </span>
             </div>
 
