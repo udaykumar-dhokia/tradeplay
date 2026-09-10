@@ -109,7 +109,7 @@ model Position {
   opened_at DateTime  @default(now())
   closed_at DateTime?
 
-  @@unique([portfolioId, symbol])
   @@index([portfolioId])
+  @@index([portfolioId, symbol])
   @@index([status])
 }

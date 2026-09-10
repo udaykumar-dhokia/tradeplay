@@ -11,6 +11,7 @@ export default class TransactionsService {
       type: "BUY" | "SELL";
       quantity: number;
       price: number;
+      positionId?: string;
     },
   ) {
     const portfolio = await prisma.portfolio.findFirst({
@@ -55,98 +56,135 @@ export default class TransactionsService {
           },
         });
 
-        // upsert position
-        const existingPosition = await tx.position.findUnique({
-          where: {
-            portfolioId_symbol: {
-              portfolioId: portfolio.id,
-              symbol: data.symbol,
-            },
+        // create distinct position lot for every purchase
+        await tx.position.create({
+          data: {
+            portfolioId: portfolio.id,
+            symbol: data.symbol,
+            name: data.name,
+            exchange: data.exchange,
+            quantity: data.quantity,
+            average_price: priceDec,
+            status: "OPEN",
           },
         });
-
-        if (existingPosition) {
-          const oldTotal = existingPosition.average_price.mul(
-            existingPosition.quantity,
-          );
-          const newTotalAmount = oldTotal.plus(totalAmount);
-          const newQuantity = existingPosition.quantity + data.quantity;
-          const newAvgPrice = newTotalAmount.dividedBy(newQuantity);
-
-          await tx.position.update({
-            where: { id: existingPosition.id },
-            data: {
-              quantity: newQuantity,
-              average_price: newAvgPrice,
-              status: "OPEN",
-              closed_at: null,
-            },
-          });
-        } else {
-          await tx.position.create({
-            data: {
-              portfolioId: portfolio.id,
-              symbol: data.symbol,
-              name: data.name,
-              exchange: data.exchange,
-              quantity: data.quantity,
-              average_price: priceDec,
-              status: "OPEN",
-            },
-          });
-        }
 
         return transaction;
       } else {
         // SELL
-        const existingPosition = await tx.position.findUnique({
-          where: {
-            portfolioId_symbol: {
+        if (data.positionId) {
+          // Specific lot sell (e.g. from Portfolio page)
+          const position = await tx.position.findFirst({
+            where: {
+              id: data.positionId,
+              portfolioId: portfolio.id,
+              status: "OPEN",
+            },
+          });
+
+          if (!position || position.quantity < data.quantity) {
+            throw new Error("Insufficient shares in this position to sell");
+          }
+
+          await tx.portfolio.update({
+            where: { id: portfolio.id },
+            data: { current_balance: { increment: totalAmount } },
+          });
+
+          const buyPrice = new Prisma.Decimal(position.average_price);
+          const priceDiff = priceDec.minus(buyPrice);
+          const realizedPnl = priceDiff.mul(data.quantity);
+
+          const transaction = await tx.transactions.create({
+            data: {
+              portfolioId: portfolio.id,
+              type: "SELL",
+              symbol: data.symbol,
+              name: data.name,
+              exchange: data.exchange,
+              total_shares: data.quantity,
+              price: priceDec,
+              total_amount: totalAmount,
+              realized_pnl: realizedPnl,
+            },
+          });
+
+          const newQuantity = position.quantity - data.quantity;
+
+          await tx.position.update({
+            where: { id: position.id },
+            data: {
+              quantity: newQuantity,
+              status: newQuantity === 0 ? "CLOSED" : "OPEN",
+              closed_at: newQuantity === 0 ? new Date() : null,
+            },
+          });
+
+          return transaction;
+        } else {
+          // General sell (e.g. from Trade page): apply FIFO across open positions
+          const openPositions = await tx.position.findMany({
+            where: {
               portfolioId: portfolio.id,
               symbol: data.symbol,
+              status: "OPEN",
             },
-          },
-        });
+            orderBy: { opened_at: "asc" },
+          });
 
-        if (!existingPosition || existingPosition.quantity < data.quantity) {
-          throw new Error("Insufficient shares to sell");
+          const totalAvailable = openPositions.reduce(
+            (sum, p) => sum + p.quantity,
+            0,
+          );
+          if (totalAvailable < data.quantity) {
+            throw new Error("Insufficient shares to sell");
+          }
+
+          await tx.portfolio.update({
+            where: { id: portfolio.id },
+            data: { current_balance: { increment: totalAmount } },
+          });
+
+          let sharesToSell = data.quantity;
+          let totalRealizedPnl = new Prisma.Decimal(0);
+
+          for (const pos of openPositions) {
+            if (sharesToSell <= 0) break;
+
+            const sellFromThis = Math.min(pos.quantity, sharesToSell);
+            const buyPrice = new Prisma.Decimal(pos.average_price);
+            const pnlForLot = priceDec.minus(buyPrice).mul(sellFromThis);
+            totalRealizedPnl = totalRealizedPnl.plus(pnlForLot);
+
+            const remainingQty = pos.quantity - sellFromThis;
+            await tx.position.update({
+              where: { id: pos.id },
+              data: {
+                quantity: remainingQty,
+                status: remainingQty === 0 ? "CLOSED" : "OPEN",
+                closed_at: remainingQty === 0 ? new Date() : null,
+              },
+            });
+
+            sharesToSell -= sellFromThis;
+          }
+
+          const transaction = await tx.transactions.create({
+            data: {
+              portfolioId: portfolio.id,
+              type: "SELL",
+              symbol: data.symbol,
+              name: data.name,
+              exchange: data.exchange,
+              total_shares: data.quantity,
+              price: priceDec,
+              total_amount: totalAmount,
+              realized_pnl: totalRealizedPnl,
+            },
+          });
+
+          return transaction;
         }
-
-        await tx.portfolio.update({
-          where: { id: portfolio.id },
-          data: { current_balance: { increment: totalAmount } },
-        });
-
-        const avgPrice = new Prisma.Decimal(existingPosition.average_price);
-        const priceDiff = priceDec.minus(avgPrice);
-        const realizedPnl = priceDiff.mul(data.quantity);
-
-        const transaction = await tx.transactions.create({
-          data: {
-            portfolioId: portfolio.id,
-            type: "SELL",
-            symbol: data.symbol,
-            name: data.name,
-            exchange: data.exchange,
-            total_shares: data.quantity,
-            price: priceDec,
-            total_amount: totalAmount,
-            realized_pnl: realizedPnl,
-          },
-        });
-
-        const newQuantity = existingPosition.quantity - data.quantity;
-
-        await tx.position.update({
-          where: { id: existingPosition.id },
-          data: {
-            quantity: newQuantity,
-            status: newQuantity === 0 ? "CLOSED" : "OPEN",
-            closed_at: newQuantity === 0 ? new Date() : null,
-          },
-        });
-
-        return transaction;
       }
     });
   }

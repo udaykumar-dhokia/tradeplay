@@ -38,7 +38,7 @@ class TransactionsController {
         .json({ message: ReasonPhrases.UNAUTHORIZED });
     }
 
-    const { symbol, name, exchange, type, quantity, price } = req.body;
+    const { symbol, name, exchange, type, quantity, price, positionId } = req.body;
 
     if (!symbol || !name || !exchange || !type || !quantity || !price) {
       return res
@@ -64,6 +64,7 @@ class TransactionsController {
         type,
         quantity,
         price,
+        positionId,
       });
 
       return res.status(StatusCodes.CREATED).json({
@@ -74,7 +75,9 @@ class TransactionsController {
       console.error("[Trade Error]", e.message);
       if (
         e.message === "Insufficient balance" ||
-        e.message === "Insufficient shares to sell"
+        e.message === "Insufficient shares to sell" ||
+        e.message === "Insufficient shares in this position to sell" ||
+        e.message?.includes("Insufficient")
       ) {
         return res.status(StatusCodes.BAD_REQUEST).json({ message: e.message });
       }

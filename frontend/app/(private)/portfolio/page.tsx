@@ -45,6 +45,7 @@ export default function PortfolioPage() {
     name: string;
     exchange: string;
     currentPrice: number;
+    positionId?: string;
   } | null>(null);
 
   const positionSymbols = useMemo(
@@ -117,6 +118,7 @@ export default function PortfolioPage() {
       name: pos.name || pos.symbol,
       exchange: pos.exchange || (pos.symbol.endsWith(".NS") ? "NSE" : "BSE"),
       currentPrice,
+      positionId: pos.id,
     });
     setTradeQuantity(pos.quantity);
     setOrderType("SELL");
@@ -292,7 +294,7 @@ export default function PortfolioPage() {
             </div>
           ) : positionsData?.positions && positionsData.positions.length > 0 ? (
             <div className="flex flex-col divide-y">
-              {positionsData.positions.map((pos: any) => {
+              {positionsData.positions.map((pos: any, index: number) => {
                 const quote = positionQuotes?.find(
                   (q) => q.symbol === pos.symbol,
                 );
@@ -314,9 +316,19 @@ export default function PortfolioPage() {
                   .replace(".NS", "")
                   .replace(".BO", "");
 
+                const openedDate = pos.opened_at ? new Date(pos.opened_at) : null;
+                const formattedOpened = openedDate && !isNaN(openedDate.getTime())
+                  ? openedDate.toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : null;
+
                 return (
                   <div
-                    key={pos.symbol}
+                    key={pos.id || `${pos.symbol}-${index}`}
                     className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-muted/40 transition-colors gap-4"
                   >
                     {/* Left: Stock info & avatar */}
@@ -339,8 +351,8 @@ export default function PortfolioPage() {
                           </span>
                         </div>
                         <span className="text-xs text-muted-foreground mt-0.5">
-                          {quantity} {quantity === 1 ? "Share" : "Shares"} • Avg{" "}
-                          {formatCurrency(avgPrice)}
+                          {quantity} {quantity === 1 ? "Share" : "Shares"} @ {formatCurrency(avgPrice)}
+                          {formattedOpened && ` • Bought on ${formattedOpened}`}
                         </span>
                       </div>
                     </Link>
@@ -431,6 +443,7 @@ export default function PortfolioPage() {
           orderType={orderType}
           setOrderType={setOrderType}
           initialQuantity={tradeQuantity}
+          positionId={selectedStock.positionId}
         />
       )}
     </div>

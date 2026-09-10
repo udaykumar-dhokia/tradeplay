@@ -213,7 +213,7 @@ export default function DashboardPage() {
               ) : positionsData?.positions &&
                 positionsData.positions.length > 0 ? (
                 <div className="flex flex-col divide-y">
-                  {positionsData.positions.slice(0, 5).map((pos: any) => {
+                  {positionsData.positions.slice(0, 5).map((pos: any, index: number) => {
                     const quote = positionQuotes?.find(
                       (q) => q.symbol === pos.symbol,
                     );
@@ -237,7 +237,7 @@ export default function DashboardPage() {
 
                     return (
                       <Link
-                        key={pos.symbol}
+                        key={pos.id || `${pos.symbol}-${index}`}
                         href={`/trade?symbol=${pos.symbol}`}
                         className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors group"
                       >

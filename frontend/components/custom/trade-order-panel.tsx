@@ -22,6 +22,7 @@ interface TradeOrderPanelProps {
   orderType: "BUY" | "SELL";
   setOrderType: (type: "BUY" | "SELL") => void;
   initialQuantity?: number;
+  positionId?: string;
 }
 
 export const TradeOrderPanel = ({
@@ -34,6 +35,7 @@ export const TradeOrderPanel = ({
   orderType,
   setOrderType,
   initialQuantity,
+  positionId,
 }: TradeOrderPanelProps) => {
   const [quantity, setQuantity] = useState<number | "">(initialQuantity || "");
   const [executeTrade, { isLoading }] = useExecuteTradeMutation();
@@ -44,9 +46,9 @@ export const TradeOrderPanel = ({
   const { data: positionsData } = useGetPositionsQuery();
 
   const currentBalance = parseFloat(balanceData?.current_balance || "0");
-  const position = positionsData?.positions?.find(
-    (p: any) => p.symbol === symbol,
-  );
+  const position = positionId
+    ? positionsData?.positions?.find((p: any) => p.id === positionId)
+    : positionsData?.positions?.find((p: any) => p.symbol === symbol);
   const ownedQuantity = position?.quantity || 0;
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export const TradeOrderPanel = ({
     } else if (!isOpen) {
       setQuantity("");
     }
-  }, [symbol, orderType, isOpen, initialQuantity]);
+  }, [symbol, orderType, isOpen, initialQuantity, positionId]);
 
   const cleanSymbol = symbol.replace(".NS", "").replace(".BO", "");
   const estimatedValue = currentPrice * (Number(quantity) || 0);
@@ -77,6 +79,7 @@ export const TradeOrderPanel = ({
         type: orderType,
         quantity: qtyNum,
         price: currentPrice,
+        positionId,
       }).unwrap();
 
       const message = `Successfully executed ${orderType} order for ${qtyNum} share${qtyNum > 1 ? "s" : ""} of ${cleanSymbol}.`;

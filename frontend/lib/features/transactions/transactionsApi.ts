@@ -30,6 +30,7 @@ export const transactionsApi = createApi({
         type: "BUY" | "SELL";
         quantity: number;
         price: number;
+        positionId?: string;
       }
     >({
       query: (body) => ({
