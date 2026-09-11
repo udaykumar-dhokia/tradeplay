@@ -28,6 +28,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import { Switch } from "@/components/ui/switch";
+import { ThemeToggle } from "@/components/custom/theme-toggle";
 import { toggleAdvancedMode } from "@/lib/features/ui/uiSlice";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -83,6 +84,14 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+
+      <div className="px-4 py-3 border-t flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold">Dark Mode</span>
+          <span className="text-xs text-muted-foreground">Toggle theme</span>
+        </div>
+        <ThemeToggle variant="switch" />
+      </div>
 
       <div className="px-4 py-3 border-t flex items-center justify-between">
         <div className="flex flex-col">

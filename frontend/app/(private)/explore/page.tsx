@@ -27,7 +27,7 @@ export default function ExplorePage() {
       </div>
 
       <div className="w-full flex justify-center -mt-14 relative z-20 px-4 max-w-5xl mx-auto">
-        <div className="w-full max-w-2xl bg-white shadow-lg border">
+        <div className="w-full max-w-2xl bg-card border-border shadow-lg border">
           <StockSearch className="w-full max-w-none!" />
         </div>
       </div>

@@ -13,6 +13,7 @@ import { ArrowUp01Icon, ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import { StockSearch } from "@/components/custom/stock-search";
 import { MarketStatusBadge } from "@/components/custom/MarketStatusBadge";
+import { ThemeToggle } from "@/components/custom/theme-toggle";
 
 export const DashboardHeader = () => {
   const { data: currentData, isLoading: isCurrentLoading } =
@@ -24,15 +25,11 @@ export const DashboardHeader = () => {
 
   const positionSymbols = useMemo(
     () =>
-      positionsData?.positions
-        ?.map((item: any) => item.symbol)
-        .join(",") || "",
+      positionsData?.positions?.map((item: any) => item.symbol).join(",") || "",
     [positionsData],
   );
-  const { data: positionQuotes, isLoading: isQuotesLoading } = useGetQuotesQuery(
-    positionSymbols,
-    { skip: !positionSymbols },
-  );
+  const { data: positionQuotes, isLoading: isQuotesLoading } =
+    useGetQuotesQuery(positionSymbols, { skip: !positionSymbols });
 
   const currentCash = parseFloat(currentData?.current_balance || "0");
   const originalBalance = parseFloat(originalData?.original_balance || "0");
@@ -81,10 +78,11 @@ export const DashboardHeader = () => {
         <StockSearch className="max-w-md" />
       </div>
 
-      <div className="flex items-center gap-6 text-sm">
+      <div className="flex items-center gap-3 sm:gap-4 text-sm">
         <div className="hidden sm:block">
           <MarketStatusBadge />
         </div>
+        {/* <ThemeToggle /> */}
         {isNetLoading ? (
           <div className="h-8 w-48 bg-muted animate-pulse rounded"></div>
         ) : (

@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 };
 
 import StoreProvider from "./StoreProvider";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export default function RootLayout({
   children,
@@ -32,6 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
         "h-full",
         "antialiased",
@@ -42,8 +44,15 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full flex flex-col">
-        <StoreProvider>{children}</StoreProvider>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <StoreProvider>{children}</StoreProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

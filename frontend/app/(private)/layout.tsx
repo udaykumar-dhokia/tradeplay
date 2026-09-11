@@ -7,7 +7,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <AuthGuard>
       <SidebarProvider>
         <AppSidebar />
-        <main className="flex flex-1 flex-col overflow-hidden bg-gray-50/30">
+        <main className="flex flex-1 flex-col overflow-hidden bg-background">
           <DashboardHeader />
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6">
             {children}

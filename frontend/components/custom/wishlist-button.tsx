@@ -69,8 +69,8 @@ export function WishlistButton({
       disabled={isLoading}
       className={`p-2 rounded-full transition-colors ${
         isWishlisted
-          ? "bg-red-50 text-red-500 hover:bg-red-100"
-          : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+          ? "bg-red-50 dark:bg-red-950/40 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50"
+          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
       } disabled:opacity-50 ${className || ""}`}
       title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
     >

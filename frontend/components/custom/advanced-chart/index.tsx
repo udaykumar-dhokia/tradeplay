@@ -11,6 +11,7 @@ import { useGetStockHistoryQuery } from "@/lib/features/stocks/stocksApi";
 import { Skeleton } from "@/components/ui/skeleton";
 import { KLineChartPro, Period, SymbolInfo } from "@klinecharts/pro";
 import "@klinecharts/pro/dist/klinecharts-pro.css";
+import { useTheme } from "next-themes";
 
 interface AdvancedChartViewProps {
   symbol: string;
@@ -27,6 +28,7 @@ export const AdvancedChartView: React.FC<AdvancedChartViewProps> = ({
   changePercent = 0,
 }) => {
   const dispatch = useAppDispatch();
+  const { resolvedTheme } = useTheme();
   const { data: balanceData, isLoading: balanceLoading } =
     useGetCurrentBalanceQuery();
   const { data: historyData } = useGetStockHistoryQuery({
@@ -151,7 +153,7 @@ export const AdvancedChartView: React.FC<AdvancedChartViewProps> = ({
         { multiplier: 1, timespan: "week", text: "1W" },
         { multiplier: 1, timespan: "month", text: "1M" },
       ],
-      theme: "light",
+      theme: resolvedTheme === "dark" ? "dark" : "light",
       locale: "en-US",
       timezone: "Asia/Kolkata",
       drawingBarVisible: true,
@@ -161,6 +163,18 @@ export const AdvancedChartView: React.FC<AdvancedChartViewProps> = ({
 
     return () => {};
   }, []);
+
+  useEffect(() => {
+    if (chartInstanceRef.current && resolvedTheme) {
+      const targetTheme = resolvedTheme === "dark" ? "dark" : "light";
+      if (
+        typeof chartInstanceRef.current.getTheme === "function" &&
+        chartInstanceRef.current.getTheme() !== targetTheme
+      ) {
+        chartInstanceRef.current.setTheme(targetTheme);
+      }
+    }
+  }, [resolvedTheme]);
 
   useEffect(() => {
     if (chartInstanceRef.current && symbol) {

@@ -51,7 +51,7 @@ const Register = () => {
 
   return (
     <div>
-      <section className="bg-gray-50 lg:grid lg:h-screen lg:place-content-center">
+      <section className="bg-background lg:grid lg:h-screen lg:place-content-center">
         <div className="mx-auto w-screen max-w-7xl px-4 py-16 sm:px-6 sm:py-24 md:grid md:grid-cols-2 md:items-center md:gap-12 lg:px-8 lg:py-32">
           <div className="max-w-prose text-left">
             <img
@@ -61,8 +61,8 @@ const Register = () => {
             />
           </div>
 
-          <div className="mx-auto w-full max-w-md p-8 bg-white border">
-            <h2 className="text-2xl font-bold mb-6 text-gray-900">
+          <div className="mx-auto w-full max-w-md p-8 bg-card border border-border">
+            <h2 className="text-2xl font-bold mb-6 text-foreground">
               Create Account
             </h2>
 
@@ -129,7 +129,7 @@ const Register = () => {
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     <HugeiconsIcon
@@ -149,7 +149,7 @@ const Register = () => {
                 {isLoading ? "Creating Account..." : "Get Started"}
               </Button>
 
-              <div className="mt-4 text-center text-sm text-gray-600">
+              <div className="mt-4 text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link
                   href="/login"

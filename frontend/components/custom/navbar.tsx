@@ -2,18 +2,19 @@ import { siteMenu } from "./siteMenu";
 import { ArrowUpRight } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
+import { ThemeToggle } from "./theme-toggle";
 
 const Navbar = () => {
   return (
     <div>
-      <header className="bg-white">
+      <header className="bg-background border-b border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="md:flex md:items-center md:gap-12">
-              <a className="block text-teal-600" href="#">
+              <Link className="block text-primary" href="/">
                 <span className="sr-only">Home</span>
-                <h1 className="text-2xl font-bold text-black">Tradeplay.</h1>
-              </a>
+                <h1 className="text-2xl font-bold text-foreground">Tradeplay.</h1>
+              </Link>
             </div>
 
             <div className="hidden md:block">
@@ -22,7 +23,7 @@ const Navbar = () => {
                   {siteMenu.map((link) => (
                     <li key={link.href}>
                       <Link
-                        className="text-black transition hover:text-black/80"
+                        className="text-muted-foreground transition hover:text-foreground"
                         href={link.href}
                       >
                         {link.label}
@@ -33,10 +34,10 @@ const Navbar = () => {
               </nav>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="sm:flex sm:gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Link
-                  className=" bg-white px-5 py-2.5 text-sm font-medium text-black"
+                  className="border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
                   href="/login"
                 >
                   Login
@@ -44,17 +45,19 @@ const Navbar = () => {
 
                 <div className="hidden sm:flex">
                   <Link
-                    className=" bg-primary px-5 py-2.5 text-sm font-medium text-white flex gap-1"
+                    className="bg-primary hover:bg-primary/90 px-4 py-2 text-sm font-medium text-primary-foreground flex items-center gap-1 transition-colors"
                     href="/register"
                   >
                     Trade for free
-                    <HugeiconsIcon icon={ArrowUpRight} size={20} />
+                    <HugeiconsIcon icon={ArrowUpRight} size={18} />
                   </Link>
                 </div>
+
+                <ThemeToggle />
               </div>
 
               <div className="block md:hidden">
-                <button className="rounded-sm bg-gray-100 p-2 text-gray-600 transition hover:text-gray-600/75">
+                <button className="rounded-sm bg-muted p-2 text-muted-foreground transition hover:text-foreground">
                   <span className="sr-only">Toggle menu</span>
 
                   <svg
