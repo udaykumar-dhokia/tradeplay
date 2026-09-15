@@ -18,6 +18,17 @@ enum PositionStatus {
   CLOSED
 }
 
+enum TradingMode {
+  NORMAL
+  ADVANCED
+}
+
+enum ThemeMode {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
 model User {
   id         String  @id @default(uuid())
   first_name String
@@ -27,9 +38,10 @@ model User {
   email    String
   password String
 
-  is_email_verified Boolean     @default(false)
+  is_email_verified Boolean       @default(false)
   portfolios        Portfolio[]
   wishlists         Wishlist[]
+  settings          UserSettings?
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -112,4 +124,16 @@ model Position {
   @@index([portfolioId])
   @@index([portfolioId, symbol])
   @@index([status])
+}
+
+model UserSettings {
+  id           String      @id @default(uuid())
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String      @unique
+  default_mode TradingMode @default(NORMAL)
+  theme        ThemeMode   @default(SYSTEM)
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+
+  @@index([userId])
 }

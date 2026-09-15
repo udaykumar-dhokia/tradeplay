@@ -131,3 +131,7 @@
     @apply font-sans;
   }
 }
+
+.klinecharts-pro {
+  height: 100% !important;
+}

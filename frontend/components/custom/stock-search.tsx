@@ -14,9 +14,11 @@ import { WishlistButton } from "@/components/custom/wishlist-button";
 export const StockSearch = ({
   className,
   placeholder = "Search (e.g. RELIANCE, TCS)...",
+  onSelectStock,
 }: {
   className?: string;
   placeholder?: string;
+  onSelectStock?: (symbol: string) => void;
 }) => {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -63,6 +65,16 @@ export const StockSearch = ({
 
   const showLoading = isFetching || isLoading;
 
+  const handleSelect = (stockSymbol: string) => {
+    setIsOpen(false);
+    setQuery("");
+    if (onSelectStock) {
+      onSelectStock(stockSymbol);
+    } else {
+      router.push(`/trade?symbol=${stockSymbol}`);
+    }
+  };
+
   return (
     <div className={cn("relative w-full", className)} ref={wrapperRef}>
       <div className="relative">
@@ -77,6 +89,14 @@ export const StockSearch = ({
           className="pl-9 pr-14 bg-muted/50 border-transparent focus-visible:bg-background focus-visible:border-primary w-full"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && results && results.length > 0) {
+              e.preventDefault();
+              handleSelect(results[0].symbol);
+            } else if (e.key === "Escape") {
+              setIsOpen(false);
+            }
+          }}
           onFocus={() => {
             if (query.trim().length > 0) setIsOpen(true);
           }}
@@ -147,16 +167,10 @@ export const StockSearch = ({
               {results?.map((stock) => (
                 <li
                   key={stock.symbol}
-                  className="px-4 py-2 hover:bg-accent hover:text-accent-foreground flex items-center justify-between group transition-colors"
+                  className="px-4 py-2 hover:bg-accent hover:text-accent-foreground flex items-center justify-between group transition-colors cursor-pointer"
+                  onClick={() => handleSelect(stock.symbol)}
                 >
-                  <div
-                    className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
-                    onClick={() => {
-                      setIsOpen(false);
-                      setQuery("");
-                      router.push(`/trade?symbol=${stock.symbol}`);
-                    }}
-                  >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <img
                       src={`https://api.dicebear.com/10.x/initials/svg?seed=${stock.symbol.replace(".NS", "").replace(".BO", "")}`}
                       alt={stock.symbol}
@@ -171,7 +185,10 @@ export const StockSearch = ({
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <div
+                    className="flex items-center gap-2 shrink-0 ml-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <span className="text-xs font-medium bg-muted px-2 py-1 rounded">
                       {stock.exchange}
                     </span>

@@ -140,6 +140,7 @@ export default function TradePage() {
   if (advancedMode) {
     return (
       <AdvancedChartView
+        key={symbol}
         symbol={symbol}
         name={priceData?.shortName || symbol}
         price={priceData?.regularMarketPrice}

@@ -1,3 +1,5 @@
+import type { TUserSettings } from "./userSettings.dto";
+
 export type TUser = {
   id: string;
   first_name: string;
@@ -6,4 +8,5 @@ export type TUser = {
   email: string;
   password: string;
   is_email_verified: boolean;
+  settings?: TUserSettings | null;
 };
