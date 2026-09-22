@@ -2,17 +2,35 @@
 
 import { useGetCurrentUserQuery } from "@/lib/features/auth/authApi";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
+import { useAppDispatch } from "@/lib/hooks";
+import { setAdvancedMode } from "@/lib/features/ui/uiSlice";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading, isError } = useGetCurrentUserQuery({});
   const router = useRouter();
+  const { setTheme } = useTheme();
+  const dispatch = useAppDispatch();
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     if (!isLoading && (isError || !user)) {
       router.push("/login");
     }
   }, [isLoading, isError, user, router]);
+
+  useEffect(() => {
+    if (user?.settings && !initializedRef.current) {
+      initializedRef.current = true;
+      if (user.settings.theme) {
+        setTheme(user.settings.theme.toLowerCase());
+      }
+      if (user.settings.default_mode) {
+        dispatch(setAdvancedMode(user.settings.default_mode === "ADVANCED"));
+      }
+    }
+  }, [user, setTheme, dispatch]);
 
   if (isLoading) {
     return (

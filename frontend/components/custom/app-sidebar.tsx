@@ -27,9 +27,11 @@ import { logout as clearUser } from "@/lib/features/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "@/components/ui/toast";
+import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/custom/theme-toggle";
 import { toggleAdvancedMode } from "@/lib/features/ui/uiSlice";
+import { SettingsDialog } from "@/components/custom/settings-dialog";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   UserCircleIcon,
@@ -60,6 +62,7 @@ export function AppSidebar() {
   const advancedMode = useAppSelector((state) => state.ui.advancedMode);
   const router = useRouter();
   const pathname = usePathname();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <Sidebar>
@@ -165,7 +168,10 @@ export function AppSidebar() {
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer">
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setSettingsOpen(true)}
+                  >
                     <HugeiconsIcon
                       icon={UserCircleIcon}
                       size={18}
@@ -173,7 +179,10 @@ export function AppSidebar() {
                     />
                     Account
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setSettingsOpen(true)}
+                  >
                     <HugeiconsIcon
                       icon={Settings01Icon}
                       size={18}
@@ -215,6 +224,7 @@ export function AppSidebar() {
           </SidebarMenu>
         ) : null}
       </SidebarFooter>
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </Sidebar>
   );
 }
